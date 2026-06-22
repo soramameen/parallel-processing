@@ -6,6 +6,10 @@ Linux / WSL2 / macOS のどれでも同じ Python 開発環境を作れるテン
 - **uv**: Python パッケージのインストールや仮想環境を高速に管理します
 - **direnv**: ディレクトリに入っただけで自動的に環境が有効になります
 
+> 🔗 **公開ページ**: https://soramameen.github.io/parallel-processing/
+>
+> このリポジトリで作った学習資料（Bron–Kerbosch 法の解説など）は GitHub Pages で公開しています。
+
 ---
 
 ## 目次
