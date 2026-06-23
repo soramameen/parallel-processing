@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bron–Kerbosch を実装から完全に理解する — simple 版 / pivot 版の深掘り</title>
+<meta name="description" content="今回実装した Bron-Kerbosch 法（通常版・pivot 版）の Python コードを行単位で解説し、サンプルグラフ上で R/P/X を1ステップずつ追える学習資料。" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0e14; --bg2:#0f131c; --panel:#141926; --panel2:#1a2030;
+    --ink:#e8ebf2; --ink2:#aab2c5; --muted:#6b7489;
+    --line:#232a3d; --line2:#2e3650;
+    --R:#38bdf8; /* sky  - R current clique */
+    --P:#a3e635; /* lime - P candidates   */
+    --X:#fb923c; /* amber- X excluded     */
+    --gold:#fbbf24; --accent:#f472b6; --teal:#2dd4bf;
+    --shadow:0 24px 60px -28px rgba(0,0,0,.8);
+    --serif:"Fraunces",Georgia,serif;
+    --sans:"Noto Sans JP",system-ui,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--sans); line-height:1.8; font-size:17px;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(1200px 600px at 82% -8%, rgba(56,189,248,.08), transparent 60%),
+      radial-gradient(900px 520px at -8% 18%, rgba(244,114,182,.06), transparent 55%);
+  }
+  .wrap{max-width:980px; margin:0 auto; padding:0 24px}
+  a{color:var(--R); text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* hero */
+  header.hero{padding:88px 0 56px; border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono); font-size:13px; letter-spacing:.22em; text-transform:uppercase; color:var(--accent); margin:0 0 18px}
+  h1{font-family:var(--serif); font-weight:800; font-size:clamp(34px,5.4vw,58px); line-height:1.08; margin:0 0 22px; letter-spacing:-.01em}
+  h1 em{font-style:italic; color:var(--gold)}
+  .lede{font-size:20px; color:var(--ink2); max-width:720px; margin:0}
+  .pillrow{display:flex; gap:10px; flex-wrap:wrap; margin-top:26px}
+  .pill{font-family:var(--mono); font-size:12.5px; padding:6px 12px; border:1px solid var(--line2); border-radius:999px; color:var(--ink2); background:var(--panel)}
+  .pill .d{color:var(--R)}
+
+  /* sections */
+  section{padding:64px 0; border-bottom:1px solid var(--line)}
+  h2{font-family:var(--serif); font-size:clamp(26px,3.4vw,38px); margin:0 0 10px; letter-spacing:-.01em}
+  h2 .n{font-family:var(--mono); font-size:15px; color:var(--muted); vertical-align:super; margin-right:10px; font-weight:500}
+  h3{font-size:21px; margin:34px 0 10px; color:var(--ink)}
+  p{margin:14px 0}
+  .sub{color:var(--ink2); margin-top:0}
+  ul{margin:14px 0; padding-left:22px}
+  li{margin:7px 0}
+  strong{color:var(--ink); font-weight:700}
+  code{font-family:var(--mono); font-size:.9em; background:var(--bg2); border:1px solid var(--line); padding:1px 6px; border-radius:5px; color:var(--teal)}
+
+  .callout{background:var(--panel); border:1px solid var(--line2); border-left:3px solid var(--accent); border-radius:10px; padding:18px 22px; margin:24px 0}
+  .callout.tip{border-left-color:var(--P)}
+  .callout.warn{border-left-color:var(--X)}
+  .callout b{color:var(--gold)}
+
+  /* code */
+  pre{background:var(--bg2); border:1px solid var(--line); border-radius:14px; padding:22px 24px; overflow:auto; font-family:var(--mono); font-size:14px; line-height:1.7; margin:18px 0; box-shadow:var(--shadow)}
+  pre .kw{color:var(--accent)} pre .fn{color:var(--gold)} pre .st{color:var(--teal)}
+  pre .cm{color:var(--muted); font-style:italic} pre .nm{color:var(--R)}
+  pre .dl{color:var(--ink2)}
+  .codecap{font-family:var(--mono); font-size:12px; color:var(--muted); margin:18px 0 6px; letter-spacing:.08em; text-transform:uppercase}
+  .lineno{display:inline-block; width:2.2em; color:var(--muted); user-select:none; text-align:right; margin-right:16px}
+
+  /* set legend */
+  .sets{display:flex; gap:12px; flex-wrap:wrap; margin:20px 0}
+  .settag{font-family:var(--mono); font-size:14px; padding:8px 14px; border-radius:10px; font-weight:700}
+  .settag.R{color:var(--R); border:1px solid color-mix(in srgb,var(--R) 45%,transparent); background:color-mix(in srgb,var(--R) 10%,transparent)}
+  .settag.P{color:var(--P); border:1px solid color-mix(in srgb,var(--P) 45%,transparent); background:color-mix(in srgb,var(--P) 10%,transparent)}
+  .settag.X{color:var(--X); border:1px solid color-mix(in srgb,var(--X) 45%,transparent); background:color-mix(in srgb,var(--X) 10%,transparent)}
+
+  /* trace */
+  .trace{display:grid; grid-template-columns:1fr; gap:18px; margin-top:22px}
+  .tracepanel{background:var(--panel); border:1px solid var(--line2); border-radius:16px; padding:22px; box-shadow:var(--shadow)}
+  .algoToggle{display:flex; gap:8px; margin-bottom:18px}
+  .algoToggle button{flex:1; font-family:var(--mono); font-size:14px; padding:11px 14px; border-radius:10px; border:1px solid var(--line2); background:var(--bg2); color:var(--ink2); cursor:pointer; transition:.15s}
+  .algoToggle button.active{background:var(--panel2); color:var(--ink); border-color:var(--accent)}
+  .graphview{display:flex; gap:18px; align-items:center; flex-wrap:wrap}
+  #graphSvg{background:var(--bg2); border:1px solid var(--line); border-radius:12px}
+  .node{font-family:var(--mono); font-weight:700}
+  .stategrid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:18px 0}
+  .statebox{border:1px solid var(--line2); border-radius:10px; padding:14px; background:var(--bg2)}
+  .statebox h4{margin:0 0 8px; font-family:var(--mono); font-size:13px; letter-spacing:.1em}
+  .statebox.R h4{color:var(--R)} .statebox.P h4{color:var(--P)} .statebox.X h4{color:var(--X)}
+  .statebox .val{font-family:var(--mono); font-size:18px; min-height:26px}
+  .stateline{font-family:var(--mono); font-size:14px; color:var(--ink2); background:var(--bg2); border:1px solid var(--line); border-radius:8px; padding:12px 14px; min-height:46px}
+  .stateline b{color:var(--gold)}
+  .controls{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:6px}
+  .controls button{font-family:var(--mono); font-size:14px; padding:10px 16px; border-radius:10px; border:1px solid var(--line2); background:var(--panel2); color:var(--ink); cursor:pointer; transition:.15s}
+  .controls button:hover{border-color:var(--accent)}
+  .controls button:disabled{opacity:.35; cursor:not-allowed}
+  .controls .pos{font-family:var(--mono); font-size:13px; color:var(--muted)}
+  .cliquefound{margin-top:14px; font-family:var(--mono); font-size:15px; color:var(--P); display:none}
+  .cliquelist{display:flex; flex-direction:column; gap:8px; margin-top:8px}
+  .clq{font-family:var(--mono); font-size:14px; padding:7px 12px; border-radius:8px; background:color-mix(in srgb,var(--P) 8%,transparent); border:1px solid color-mix(in srgb,var(--P) 35%,transparent); color:var(--ink); display:inline-block; width:fit-content}
+  .pivotbadge{display:inline-block; margin-left:8px; font-family:var(--mono); font-size:11px; color:var(--accent); border:1px solid var(--accent); border-radius:999px; padding:1px 8px}
+
+  /* complexity table */
+  table{width:100%; border-collapse:collapse; margin:22px 0; font-size:15px}
+  th,td{text-align:left; padding:13px 16px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{font-family:var(--mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+  td code{font-size:.85em}
+  tr:hover td{background:var(--bg2)}
+
+  /* run */
+  .terminal{background:#070a10; border:1px solid var(--line); border-radius:14px; padding:20px 22px; font-family:var(--mono); font-size:13.5px; line-height:1.75; color:#cfd6e6; box-shadow:var(--shadow); overflow:auto}
+  .terminal .pr{color:var(--P)} .terminal .c{color:var(--muted)} .terminal .k{color:var(--gold)} .terminal .g{color:var(--R)}
+
+  footer{padding:54px 0 80px; color:var(--muted); font-size:14px}
+  footer a{color:var(--ink2)}
+  .nav{display:flex; gap:14px; flex-wrap:wrap; margin-top:18px}
+  .nav a{font-family:var(--mono); font-size:13px; padding:9px 14px; border:1px solid var(--line2); border-radius:10px; color:var(--ink2)}
+  .nav a:hover{border-color:var(--accent); color:var(--ink); text-decoration:none}
+
+  @media(max-width:640px){
+    .stategrid{grid-template-columns:1fr}
+    #graphSvg{width:100%; height:auto}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">実装から完全に理解する · Bron–Kerbosch</p>
+    <h1>グラフの<em>極大クリーク</em>をすべて列挙する<br>simple 版と pivot 版</h1>
+    <p class="lede">この資料は、実際に書いた Python コード <code>src/parallel_processing/bron_kerbosch.py</code> を行単位で読み解き、サンプルグラフ上で R / P / X の3集合がどう動くかを1ステップずつ追えるようにしたものです。</p>
+    <div class="pillrow">
+      <span class="pill"><span class="d">●</span> simple（枝刈りなし）</span>
+      <span class="pill"><span class="d">●</span> pivot（ピボット枝刈り）</span>
+      <span class="pill">極大クリーク列挙</span>
+      <span class="pill">Python 3.12</span>
+    </div>
+  </div>
+</header>
+
+<!-- ============ 1. 背景 ============ -->
+<section>
+  <div class="wrap">
+    <h2><span class="n">01</span>何を解くのか</h2>
+    <p class="sub">「友達関係の中で、全員が互いに友達であるようなグループ」を、もう大きくできないところまで探す。</p>
+
+    <h3>クリーク（clique）</h3>
+    <p>頂点の部分集合で、<strong>どの2頂点も辺で結ばれている</strong>もの。「全員が互いに知り合い」なグループ。</p>
+
+    <h3>極大クリーク（maximal clique）</h3>
+    <p>これ以上どの頂点を追加してもクリークでなくなってしまうクリーク。つまり「これ以上大きくできないクリーク」。<strong>Bron–Kerbosch 法は、グラフ中の極大クリークを“すべて”列挙する</strong>アルゴリズムです。</p>
+
+    <div class="callout tip">
+      <p style="margin:0"><b>注意:</b> 「最大クリーク（maximum clique = 一番大きいもの1つ）」ではありません。極大クリークはグラフ全体で複数ありえます。私たちのコードはそれらをすべて返します。</p>
+    </div>
+    <p class="codecap">今回のコードが扱うサンプルグラフ（頂点 1–6）</p>
+    <div class="graphview">
+      <svg id="staticGraph" width="300" height="240" viewBox="0 0 300 240"></svg>
+      <p style="margin:0;color:var(--ink2);max-width:340px">このグラフの極大クリークは <code>{1,2,5}, {2,3}, {3,4}, {4,5}, {4,6}</code> の5つ。これを目標の答えとして、アルゴリズムがどう導き出すかを見ていきます。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2. R/P/X ============ -->
+<section>
+  <div class="wrap">
+    <h2><span class="n">02</span>核心: 3つの集合 R / P / X</h2>
+    <p>Bron–Kerbosch のすべては、3つの集合を持ち回る再帰に帰着します。これらを理解すれば、あとは“枠組み”です。</p>
+
+    <div class="sets">
+      <span class="settag R">R — 現在組んでいるクリーク</span>
+      <span class="settag P">P — 候補（R に追加してもクリークのままの頂点）</span>
+      <span class="settag X">X — すでに処理済み（もう追加しない）</span>
+    </div>
+
+    <p><strong>R</strong> は現在注目しているクリークそのもの。<strong>P</strong> は「ここから1頂点選んで R に足せる」候補。<strong>X</strong> は過去に選んで R から外した頂点で、同じクリークを重複して出力しないための「除外」です。</p>
+
+    <div class="callout">
+      <p style="margin:0"><b>出力のタイミング:</b> 再帰のある呼び出しで <code>P も X も空</code> になったら、そのときの <code>R</code> が極大クリークとして確定します。<br>
+      「候補も無く、除外も無い」＝「これ以上大きくできないし、過去にも出力していない」＝極大クリーク、という理屈です。</p>
+    </div>
+
+    <p>各再帰ステップでは、P から頂点 <code>v</code> を1つ選びます。頂点 <code>v</code> をクリークに足すには、次の候補は「<strong>v の隣接頂点だけ</strong>」に絞られます（v と繋がっていない頂点はクリークになれないから）。なので新しい <code>P</code>, <code>X</code> はそれぞれ元の集合と <code>N(v)</code>（v の近傍）の積集合になります。</p>
+
+    <p class="codecap">再帰の骨格（共通）</p>
+<pre><span class="kw">def</span> <span class="fn">bk</span>(R, P, X):
+    <span class="kw">if</span> <span class="kw">not</span> P <span class="kw">and</span> <span class="kw">not</span> X:
+        出力(R)              <span class="cm"># 極大クリーク確定</span>
+        <span class="kw">return</span>
+    <span class="kw">for</span> v <span class="kw">in</span> P:               <span class="cm"># 候補から1つ選ぶ</span>
+        bk(R ∪ {v}, P ∩ N(v), X ∩ N(v))
+        P ← P − {v}         <span class="cm"># v を候補から外し…</span>
+        X ← X ∪ {v}         <span class="cm"># 除外に回す（重複防止）</span></pre>
+  </div>
+</section>
+
+<!-- ============ 3. simple 版コード ============ -->
+<section>
+  <div class="wrap">
+    <h2><span class="n">03</span>simple 版 — 書いたコードを行ごとに</h2>
+    <p class="sub">枝刈りなしの素直な実装。上の骨格をほぼそのまま Python に書き下ろしたものです。</p>
+
+    <p class="codecap">src/parallel_processing/bron_kerbosch.py（bron_kerbosch_simple）</p>
+<pre id="codeSimple"></pre>
+
+    <h3>読み方のポイント</h3>
+    <ul>
+      <li><code>cliques: list[frozenset[int]] = []</code> — 見つかった極大クリークを詰める箱。内側の <code>recurse</code> がこの箱に追記します（クロージャ）。</li>
+      <li><code>for v in list(p)</code> — <code>p</code> を直接回すとループ中に書き換えてしまうので、<code>list(p)</code> で<strong>コピーを固定</strong>して回します。ここが初心者がよくハマる罠。</li>
+      <li><code>recurse(r | {v}, p & neighbours, x & neighbours)</code> — まさに骨格の <code>R∪{v}, P∩N(v), X∩N(v)</code>。<code>|</code> は和集合、<code>&amp;</code> は積集合。</li>
+      <li><code>p = p - {v}; x = x | {v}</code> — 頂点 <code>v</code> を処理し終えたら P から外して X に移動。<strong>これが重複出力を防ぐ心臓部</strong>。</li>
+      <li><code>graph.get(v, set())</code> — <code>v</code> が隣接を持たない（孤立点）場合も安全に空集合を返す小さな工夫。</li>
+    </ul>
+
+    <div class="callout warn">
+      <p style="margin:0"><b>なぜ “枝刈りなし” と言うか:</b> P の頂点を<strong>すべて</strong>再帰の分岐に使います。後述の pivot 版は「この分岐は無駄」と判断して飛ばすことで高速化します。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. トレース ============ -->
+<section>
+  <div class="wrap">
+    <h2><span class="n">04</span>サンプルグラフで1ステップずつ追う</h2>
+    <p class="sub">下のコントロールで再帰を再現します。ステップごとに R / P / X と、今実行中の処理を表示します。このトレースは<strong>ページ内で実際のアルゴリズムを動かして生成</strong>しているので、出力と完全に一致します。</p>
+
+    <div class="trace">
+      <div class="tracepanel">
+        <div class="algoToggle">
+          <button id="btnSimple" class="active" type="button">simple 版</button>
+          <button id="btnPivot" type="button">pivot 版</button>
+        </div>
+
+        <div class="graphview" style="justify-content:space-between">
+          <svg id="traceGraph" width="300" height="240" viewBox="0 0 300 240"></svg>
+          <div style="flex:1;min-width:240px">
+            <div class="stategrid">
+              <div class="statebox R"><h4>R クリーク</h4><div class="val" id="stR">∅</div></div>
+              <div class="statebox P"><h4>P 候補</h4><div class="val" id="stP">∅</div></div>
+              <div class="statebox X"><h4>X 除外</h4><div class="val" id="stX">∅</div></div>
+            </div>
+            <div class="stateline" id="stLine"><b>開始:</b> R=∅, P=全頂点, X=∅</div>
+            <div class="cliquefound" id="stFound">★ 極大クリーク確定</div>
+          </div>
+        </div>
+
+        <div class="controls" style="margin-top:18px">
+          <button id="btnPrev" type="button">◀ 前へ</button>
+          <button id="btnNext" type="button">次へ ▶</button>
+          <button id="btnAuto" type="button">▶ 自動再生</button>
+          <span class="pos" id="stPos">0 / 0</span>
+        </div>
+
+        <div style="margin-top:20px">
+          <p class="codecap" style="margin-bottom:8px">見つかった極大クリーク（実行中に追記）</p>
+          <div class="cliquelist" id="cliqueList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. pivot 版 ============ -->
+<section>
+  <div class="wrap">
+    <h2><span class="n">05</span>pivot 版 — 無駄な分岐を刈る</h2>
+
+    <h3>simple 版の無駄</h3>
+    <p>simple 版は P の頂点すべてを分岐に使いますが、実は<strong>「必ず失敗する分岐」</strong>がたくさん含まれます。極大クリークは「これ以上大きくできない」クリークです。もし今の状態で P の中に<strong>あるクリークの候補が残っている</strong>のに、そこから1頂点だけ選んで R を完成させると、「本当は P の別の頂点を足せたはず」なのに極大として出力してしまう……と見えて、実はそうはなりません。代わりに<strong>同じ極大クリークを何度も（P の別の頂点経由で）出力しようとして</strong>時間を浪費します。</p>
+
+    <h3>pivot のアイデア</h3>
+    <p>P ∪ X から1つ <strong>ピボット u</strong> を選びます。すると極大クリークは「<strong>u を含む</strong>か、<strong>u の隣接でない頂点を含む</strong>か」のどちらかしかありません。つまり <code>P ∩ N(u)</code> に属する頂点だけで分岐を作れば十分で、それらは「u を含む場合」でカバーされます。</p>
+
+    <div class="callout tip">
+      <p style="margin:0"><b>結論:</b> <code>P − N(u)</code> の頂点<strong>だけ</strong>を分岐に使えば、同じ極大クリーク集合をすべて見つけつつ、再帰呼び出しの数を大幅に減らせます。<br>
+      どの <code>u</code> を選んでも正しいですが、<strong>P の中で近傍が最も多い頂点</strong>を贪欲に選ぶと <code>P − N(u)</code> が最小になり、枝刈りが最大化します。</p>
+    </div>
+
+    <p class="codecap">bron_kerbosch_pivot（simple 版との“差分”に注目）</p>
+<pre id="codePivot"></pre>
+
+    <h3>simple 版との差は2行だけ</h3>
+    <ul>
+      <li><code>pivot = max(p | x, key=lambda v: len(graph.get(v,set()) & p))</code> — P ∪ X から「P 内の近傍数が最大」のピボットを贪欲選択。</li>
+      <li><code>for v in list(p - graph.get(pivot, set())):</code> — <strong>P − N(u)</strong> だけを分岐に使う。これが枝刈りそのもの。</li>
+    </ul>
+    <p>それ以外は simple 版と同一です。出力する極大クリークの集合は変わりません（次節のトレースとテストで一致を確認済み）。</p>
+  </div>
+</section>
+
+<!-- ============ 6. 計算量 ============ -->
+<section>
+  <div class="wrap">
+    <h2><span class="n">06</span>計算量と効果</h2>
+    <p>頂点数 <code>n</code>、辺数 <code>m</code>、グラフ中の極大クリーク数を <code>μ</code> とします。最悪ケースの極大クリーク数は <code>μ = Θ(3^(n/3))</code>（Moon–Moser）なので、列挙自体がこれだけ必要です。</p>
+
+    <table>
+      <thead><tr><th>バリアント</th><th>最悪計算量</th><th>実感</th></tr></thead>
+      <tbody>
+        <tr><td>simple（枝刈りなし）</td><td><code>O(3^(n/3))</code> だが定数倍が大きく、密なグラフで無駄呼び出しが爆発</td><td>小さいグラフなら十分。分かりやすい。</td></tr>
+        <tr><td>pivot</td><td><code>O(3^(n/3))</code>・定数倍で有利、各再帰の分岐数を実質最小化</td><td>実用上の標準。実質的に“これ”が Bron–Kerbosch。</td></tr>
+        <tr><td>（発展）退行あり pivot</td><td><code>O(3^(n/3))</code>・メモリ O(n) で <strong>最悪最適</strong></td><td>巨大グラフ向け。今回は実装せず。</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <p style="margin:0"><b>両者は同じ答えを出す:</b> プロジェクトの <code>tests/test_bron_kerbosch.py</code> は、手計算の期待値に両者が一致することと、<strong>乱択グラフ50個で simple 版と pivot 版の出力が完全一致</strong>することを検証しています。pivot は“速くなるだけ”で正しさは変わりません。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7. 実行 ============ -->
+<section>
+  <div class="wrap">
+    <h2><span class="n">07</span>動かしてみる</h2>
+    <p>プロジェクトルートで以下を実行すると、サンプルグラフに対して両バリアントを動かし、結果を比較表示します。</p>
+    <p class="codecap">コマンド</p>
+<div class="terminal"><span class="c"># モジュールとして実行（main がサンプルグラフで両者を比較）</span>
+uv run python -m parallel_processing.bron_kerbosch
+
+<span class="c"># テスト（両者の一致 + 手計算期待値を検証）</span>
+uv run pytest</div>
+
+    <p class="codecap">実行結果</p>
+<div class="terminal"><span class="pr">$</span> uv run python -m parallel_processing.bron_kerbosch
+<span class="g">graph:  {1: [2, 5], 2: [1, 3, 5], 3: [2, 4], 4: [3, 5, 6], 5: [1, 2, 4], 6: [4]}</span>
+<span class="k">simple: 5 maximal cliques</span>
+   [2, 3]
+   [3, 4]
+   [4, 5]
+   [4, 6]
+   [1, 2, 5]
+<span class="k">pivot:  5 maximal cliques</span>
+   [2, 3]
+   [3, 4]
+   [4, 5]
+   [4, 6]
+   [1, 2, 5]
+<span class="pr">match:  True</span></div>
+
+    <div class="nav">
+      <a href="https://github.com/soramameen/parallel-processing/blob/main/src/parallel_processing/bron_kerbosch.py">実装を見る ↗</a>
+      <a href="https://github.com/soramameen/parallel-processing/blob/main/tests/test_bron_kerbosch.py">テストを見る ↗</a>
+      <a href="./bron-kerbosch.html">汎用シミュレーター（別資料） ↗</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>parallel-processing · Bron–Kerbosch 実装深掘り資料 · 学習目的で作成</p>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   このページは“今回書いた Python コード”を忠実に模倣した JS で
+   再帰を再現し、R/P/X の推移を正確に可視化する。
+   ============================================================ */
+
+// ---- サンプルグラフ（Python の Graph と同一） ----
+const ADJ = {
+  1:[2,5], 2:[1,3,5], 3:[2,4], 4:[3,5,6], 5:[1,2,4], 6:[4]
+};
+const VERTS = [1,2,3,4,5,6];
+const NEI = v => new Set(ADJ[v] || []);
+const set = a => new Set(a);
+const copy = s => new Set(s);
+const fmt = s => s.size ? "{" + [...s].sort((x,y)=>x-y).join(", ") + "}" : "∅";
+
+// 頂点のレイアウト座標（六角形配置）
+const POS = {
+  1:{x:70,y:60}, 2:{x:230,y:60}, 3:{x:285,y:150},
+  4:{x:230,y:220}, 5:{x:70,y:220}, 6:{x:15,y:150}
+};
+
+// ---- エッジリスト ----
+const EDGES = [];
+for(const u of VERTS) for(const v of ADJ[u]) if(u<v) EDGES.push([u,v]);
+
+// ---- SVG グラフ描画 ----
+function drawGraph(svgId, R, P, X, highlight){
+  const svg = document.getElementById(svgId);
+  R = R || new Set(); P = P || new Set(); X = X || new Set();
+  highlight = highlight || null;
+  let h = "";
+  // edges
+  for(const [a,b] of EDGES){
+    const pa=POS[a], pb=POS[b];
+    h += `<line x1="${pa.x}" y1="${pa.y}" x2="${pb.x}" y2="${pb.y}" stroke="#2e3650" stroke-width="2"/>`;
+  }
+  // nodes
+  for(const v of VERTS){
+    const p=POS[v];
+    let fill="#1a2030", stroke="#2e3650", txt="#aab2c5";
+    if(R.has(v)){ fill="rgba(56,189,248,.18)"; stroke="#38bdf8"; txt="#e8ebf2"; }
+    else if(P.has(v)){ fill="rgba(163,230,53,.14)"; stroke="#a3e635"; txt="#e8ebf2"; }
+    else if(X.has(v)){ fill="rgba(251,146,60,.12)"; stroke="#fb923c"; txt="#e8ebf2"; }
+    const ring = highlight===v ? `<circle cx="${p.x}" cy="${p.y}" r="22" fill="none" stroke="#f472b6" stroke-width="2" opacity=".9"/>` : "";
+    h += `${ring}<circle cx="${p.x}" cy="${p.y}" r="17" fill="${fill}" stroke="${stroke}" stroke-width="2.5"/>`;
+    h += `<text x="${p.x}" y="${p.y+5}" text-anchor="middle" class="node" fill="${txt}" font-size="15">${v}</text>`;
+  }
+  svg.innerHTML = h;
+}
+
+// 初期描画（静的グラフ）
+drawGraph("staticGraph", new Set(), new Set(VERTS), new Set(), null);
+
+// ---- simple 版トレース生成（Python の recurse と等価） ----
+function traceSimple(){
+  const steps=[]; const found=[];
+  const rec=(r,p,x,depth)=>{
+    const pr = copy(r), pp = copy(p), px = copy(x);
+    steps.push({R:pr,P:pp,X:px,line:`深さ${depth}: 開始  R=${fmt(pr)} P=${fmt(pp)} X=${fmt(px)}`,hi:null,found:null});
+    if(p.size===0 && x.size===0){
+      steps.push({R:copy(r),P:copy(p),X:copy(x),line:`深さ${depth}: P,X ともに空 → R=${fmt(r)} を極大クリークとして出力`,hi:null,found:new Set(r)});
+      found.push(new Set(r));
+      return;
+    }
+    for(const v of [...p]){
+      steps.push({R:copy(r),P:copy(p),X:copy(x),line:`深さ${depth}: P から頂点 ${v} を選んで分岐`,hi:v,found:null});
+      const nb=NEI(v);
+      rec(new Set([...r,v]), set([...p].filter(x=>nb.has(x))), set([...x].filter(x=>nb.has(x))), depth+1);
+      p.delete(v); x.add(v);
+      steps.push({R:copy(r),P:copy(p),X:copy(x),line:`深さ${depth}: 頂点 ${v} を処理済み(X)へ移動`,hi:v,found:null});
+    }
+  };
+  rec(set(), set(VERTS), set(), 0);
+  return {steps,found};
+}
+
+// ---- pivot 版トレース生成（Python の recurse と等価） ----
+function tracePivot(){
+  const steps=[]; const found=[];
+  const rec=(r,p,x,depth)=>{
+    const pr=copy(r),pp=copy(p),px=copy(x);
+    steps.push({R:pr,P:pp,X:px,line:`深さ${depth}: 開始  R=${fmt(pr)} P=${fmt(pp)} X=${fmt(px)}`,hi:null,found:null});
+    if(p.size===0 && x.size===0){
+      steps.push({R:copy(r),P:copy(p),X:copy(x),line:`深さ${depth}: P,X ともに空 → R=${fmt(r)} を極大クリークとして出力`,hi:null,found:new Set(r)});
+      found.push(new Set(r));
+      return;
+    }
+    // ピボット選択（P∪X の中で P 内近傍数が最大）
+    const cand=[...set([...p,...x])];
+    let pivot=cand[0], best=-1;
+    for(const u of cand){ const c=[...p].filter(v=>NEI(u).has(v)).length; if(c>best){best=c;pivot=u;} }
+    steps.push({R:copy(r),P:copy(p),X:copy(x),line:`深さ${depth}: ピボット ${pivot} を選択（P 内近傍数 ${best}）→ P−N(${pivot}) のみ分岐`,hi:pivot,found:null,pivot});
+    const skip=NEI(pivot);
+    for(const v of [...p].filter(x=>!skip.has(x))){
+      steps.push({R:copy(r),P:copy(p),X:copy(x),line:`深さ${depth}: ${v} は ${pivot} の近傍でない → 分岐`,hi:v,found:null});
+      const nb=NEI(v);
+      rec(new Set([...r,v]), set([...p].filter(x=>nb.has(x))), set([...x].filter(x=>nb.has(x))), depth+1);
+      p.delete(v); x.add(v);
+      steps.push({R:copy(r),P:copy(p),X:copy(x),line:`深さ${depth}: 頂点 ${v} を処理済み(X)へ移動`,hi:v,found:null});
+    }
+  };
+  rec(set(), set(VERTS), set(), 0);
+  return {steps,found};
+}
+
+// ---- UI 状態 ----
+let mode="simple";
+let data = traceSimple();
+let idx=0; let seenFound=[]; let auto=null;
+
+function render(){
+  const s=data.steps[idx];
+  document.getElementById("stR").textContent=fmt(s.R);
+  document.getElementById("stP").textContent=fmt(s.P);
+  document.getElementById("stX").textContent=fmt(s.X);
+  document.getElementById("stLine").innerHTML=`<b>ステップ ${idx}:</b> ${s.line}` + (s.pivot?` <span class="pivotbadge">PIVOT=${s.pivot}</span>`:"");
+  drawGraph("traceGraph", s.R, s.P, s.X, s.hi);
+  document.getElementById("stPos").textContent=`${idx} / ${data.steps.length-1}`;
+  document.getElementById("stFound").style.display = s.found ? "block" : "none";
+  if(s.found){
+    if(!seenFound.some(c=>[...c].sort().join() === [...s.found].sort().join())){
+      seenFound.push(new Set(s.found));
+    }
+  }
+  const cl=document.getElementById("cliqueList");
+  cl.innerHTML = seenFound.length
+    ? seenFound.map(c=>`<span class="clq">${fmt(c)}</span>`).join("")
+    : `<span style="color:var(--muted);font-size:13px">（まだ見つかっていません）</span>`;
+  document.getElementById("btnPrev").disabled = idx===0;
+  document.getElementById("btnNext").disabled = idx===data.steps.length-1;
+}
+
+function setMode(m){
+  mode=m;
+  document.getElementById("btnSimple").classList.toggle("active", m==="simple");
+  document.getElementById("btnPivot").classList.toggle("active", m==="pivot");
+  data = m==="simple" ? traceSimple() : tracePivot();
+  idx=0; seenFound=[]; stopAuto(); render();
+}
+function stopAuto(){ if(auto){clearInterval(auto); auto=null; document.getElementById("btnAuto").textContent="▶ 自動再生";} }
+
+document.getElementById("btnSimple").onclick=()=>setMode("simple");
+document.getElementById("btnPivot").onclick=()=>setMode("pivot");
+document.getElementById("btnPrev").onclick=()=>{stopAuto(); if(idx>0){idx--; render();}};
+document.getElementById("btnNext").onclick=()=>{stopAuto(); if(idx<data.steps.length-1){idx++; render();}};
+document.getElementById("btnAuto").onclick=()=>{
+  if(auto){stopAuto(); return;}
+  if(idx>=data.steps.length-1){idx=0; seenFound=[]; render();}
+  document.getElementById("btnAuto").textContent="⏸ 停止";
+  auto=setInterval(()=>{
+    if(idx<data.steps.length-1){idx++; render();}
+    else{stopAuto();}
+  }, 450);
+};
+
+// ---- コードブロックの挿入 ----
+const CODE_SIMPLE = [
+'<span class="kw">def</span> <span class="fn">bron_kerbosch_simple</span>(graph: Graph) -> <span class="kw">list</span>[<span class="fn">frozenset</span>[<span class="kw">int</span>]]:',
+'    <span class="cm">"""...極大クリークを基本形で列挙。枝刈りなし。"""</span>',
+'    cliques: <span class="kw">list</span>[<span class="fn">frozenset</span>[<span class="kw">int</span>]] = []',
+'',
+'    <span class="kw">def</span> <span class="fn">recurse</span>(r: <span class="kw">set</span>[<span class="kw">int</span>], p: <span class="kw">set</span>[<span class="kw">int</span>], x: <span class="kw">set</span>[<span class="kw">int</span>]) -> <span class="kw">None</span>:',
+'        <span class="cm"># r: 現クリーク / p: 候補 / x: 処理済み除外</span>',
+'        <span class="kw">if</span> <span class="kw">not</span> p <span class="kw">and</span> <span class="kw">not</span> x:',
+'            cliques.append(<span class="fn">frozenset</span>(r))   <span class="cm"># 極大クリーク確定</span>',
+'            <span class="kw">return</span>',
+'        <span class="kw">for</span> v <span class="kw">in</span> <span class="fn">list</span>(p):                  <span class="cm"># コピーを固定してループ</span>',
+'            neighbours = graph.<span class="fn">get</span>(v, <span class="fn">set</span>())',
+'            <span class="fn">recurse</span>(r | {v}, p &amp; neighbours, x &amp; neighbours)',
+'            p = p - {v}                  <span class="cm"># 候補から外し…</span>',
+'            x = x | {v}                  <span class="cm"># 除外へ（重複防止）</span>',
+'',
+'    <span class="fn">recurse</span>(<span class="fn">set</span>(), <span class="fn">set</span>(graph), <span class="fn">set</span>())',
+'    <span class="kw">return</span> <span class="fn">_sort_cliques</span>(cliques)',
+].map((l,i)=>`<span class="lineno">${i+1}</span>${l}`).join("\n");
+document.getElementById("codeSimple").innerHTML = CODE_SIMPLE;
+
+const CODE_PIVOT = [
+'<span class="kw">def</span> <span class="fn">bron_kerbosch_pivot</span>(graph: Graph) -> <span class="kw">list</span>[<span class="fn">frozenset</span>[<span class="kw">int</span>]]:',
+'    cliques: <span class="kw">list</span>[<span class="fn">frozenset</span>[<span class="kw">int</span>]] = []',
+'',
+'    <span class="kw">def</span> <span class="fn">recurse</span>(r, p, x) -> <span class="kw">None</span>:',
+'        <span class="kw">if</span> <span class="kw">not</span> p <span class="kw">and</span> <span class="kw">not</span> x:',
+'            cliques.append(<span class="fn">frozenset</span>(r))',
+'            <span class="kw">return</span>',
+'        <span class="cm"># ピボット u を P∪X から贪欲選択（P 内近傍数が最大）</span>',
+'        pivot = <span class="fn">max</span>(p | x, key=<span class="kw">lambda</span> v: <span class="fn">len</span>(graph.<span class="fn">get</span>(v, <span class="fn">set</span>()) &amp; p))',
+'        <span class="cm"># P − N(u) だけを分岐に使う ← これが枝刈り</span>',
+'        <span class="kw">for</span> v <span class="kw">in</span> <span class="fn">list</span>(p - graph.<span class="fn">get</span>(pivot, <span class="fn">set</span>())):',
+'            neighbours = graph.<span class="fn">get</span>(v, <span class="fn">set</span>())',
+'            <span class="fn">recurse</span>(r | {v}, p &amp; neighbours, x &amp; neighbours)',
+'            p = p - {v}',
+'            x = x | {v}',
+'',
+'    <span class="fn">recurse</span>(<span class="fn">set</span>(), <span class="fn">set</span>(graph), <span class="fn">set</span>())',
+'    <span class="kw">return</span> <span class="fn">_sort_cliques</span>(cliques)',
+].map((l,i)=>`<span class="lineno">${i+1}</span>${l}`).join("\n");
+document.getElementById("codePivot").innerHTML = CODE_PIVOT;
+
+// 初期化
+setMode("simple");
+</script>
+</body>
+</html>
