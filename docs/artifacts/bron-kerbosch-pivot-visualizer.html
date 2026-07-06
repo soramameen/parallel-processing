@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bron–Kerbosch 基本形 vs pivot 版 可視化</title>
+  <style>
+    :root {
+      --bg: #f8f9fa;
+      --text: #212529;
+      --muted: #6c757d;
+      --r-color: #dc3545;
+      --p-color: #0d6efd;
+      --x-color: #6c757d;
+      --skip-color: #ffc107;
+      --pivot-color: #6610f2;
+      --neutral: #dee2e6;
+      --code-bg: #f1f3f5;
+      --border: #dee2e6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+      margin: 0;
+      padding: 1rem;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 0.4rem;
+    }
+    .subtitle { color: var(--muted); margin-bottom: 1.5rem; }
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 6px;
+      background: var(--p-color);
+      color: #fff;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    button:hover { background: #0b5ed7; }
+    button:disabled { background: var(--neutral); cursor: not-allowed; }
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.2rem;
+    }
+    .panel h2 {
+      font-size: 1.2rem;
+      margin-top: 0;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    svg {
+      width: 100%;
+      height: 260px;
+      background: #fafbfc;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .node {
+      fill: #fff;
+      stroke: #495057;
+      stroke-width: 2;
+      transition: all 0.3s ease;
+    }
+    .node.r { fill: var(--r-color); stroke: var(--r-color); }
+    .node.p { fill: var(--p-color); stroke: var(--p-color); }
+    .node.x { fill: var(--x-color); stroke: var(--x-color); }
+    .node.skip { fill: var(--skip-color); stroke: #d39e00; }
+    .node.pivot { stroke: var(--pivot-color); stroke-width: 4; }
+    .node-label {
+      font-size: 14px;
+      font-weight: bold;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+      fill: #212529;
+      transition: fill 0.3s ease;
+    }
+    .node-label.light { fill: #fff; }
+    .edge { stroke: #adb5bd; stroke-width: 2; }
+    .state-box {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.4rem;
+      margin: 1rem 0;
+    }
+    .state-item {
+      background: var(--code-bg);
+      border-radius: 6px;
+      padding: 0.5rem;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+    .state-item strong { display: block; font-size: 0.8rem; color: var(--muted); }
+    .pivot-info {
+      background: #f3e8ff;
+      border-left: 4px solid var(--pivot-color);
+      padding: 0.6rem 0.8rem;
+      border-radius: 0 6px 6px 0;
+      margin: 0.5rem 0;
+      font-size: 0.9rem;
+      min-height: 2.5rem;
+    }
+    .step-info {
+      background: var(--code-bg);
+      padding: 0.8rem;
+      border-radius: 6px;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      min-height: 3.2rem;
+    }
+    pre {
+      background: var(--code-bg);
+      padding: 0.8rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      overflow-x: auto;
+      line-height: 1.5;
+    }
+    .code-line { padding: 0.1rem 0.3rem; border-radius: 4px; }
+    .code-line.active { background: #fff3cd; font-weight: bold; }
+    .legend {
+      display: flex;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 0.8rem;
+      font-size: 0.85rem;
+    }
+    .legend-item { display: flex; align-items: center; gap: 0.3rem; }
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .summary {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #e7f1ff;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Bron–Kerbosch 基本形 vs pivot 版</h1>
+    <p class="subtitle">同じグラフで、基本形と pivot 版の探索の違いを比較できます。</p>
+
+    <div class="controls">
+      <button id="prevBtn" onclick="stepPrev()">← 前へ</button>
+      <button id="nextBtn" onclick="stepNext()">次へ →</button>
+      <button id="autoBtn" onclick="toggleAuto()">自動再生</button>
+      <button onclick="reset()">リセット</button>
+    </div>
+
+    <div class="layout">
+      <!-- 基本形 -->
+      <div class="panel">
+        <h2>基本形 BronKerbosch1</h2>
+        <svg id="basicSvg" viewBox="0 0 400 260"></svg>
+        <div class="legend">
+          <div class="legend-item"><span class="dot" style="background:var(--r-color)"></span> R</div>
+          <div class="legend-item"><span class="dot" style="background:var(--p-color)"></span> P</div>
+          <div class="legend-item"><span class="dot" style="background:var(--x-color)"></span> X</div>
+        </div>
+        <div class="state-box">
+          <div class="state-item"><strong>R</strong><span id="basic-r">{}</span></div>
+          <div class="state-item"><strong>P</strong><span id="basic-p">{}</span></div>
+          <div class="state-item"><strong>X</strong><span id="basic-x">{}</span></div>
+        </div>
+        <div class="step-info" id="basic-desc">「次へ」で開始</div>
+        <pre><code><span class="code-line" id="b-line-0">BronKerbosch1(R, P, X):</span>
+<span class="code-line" id="b-line-1">  if P empty and X empty:</span>
+<span class="code-line" id="b-line-2">    report R</span>
+<span class="code-line" id="b-line-3">  for v in P:</span>
+<span class="code-line" id="b-line-4">    BronKerbosch1(R∪{v}, P∩N(v), X∩N(v))</span>
+<span class="code-line" id="b-line-5">    P := P \\{v}</span>
+<span class="code-line" id="b-line-6">    X := X ∪ {v}</span></code></pre>
+      </div>
+
+      <!-- pivot 版 -->
+      <div class="panel">
+        <h2>pivot 版 BronKerbosch2</h2>
+        <svg id="pivotSvg" viewBox="0 0 400 260"></svg>
+        <div class="legend">
+          <div class="legend-item"><span class="dot" style="background:var(--r-color)"></span> R</div>
+          <div class="legend-item"><span class="dot" style="background:var(--p-color)"></span> P</div>
+          <div class="legend-item"><span class="dot" style="background:var(--x-color)"></span> X</div>
+          <div class="legend-item"><span class="dot" style="background:var(--skip-color)"></span> スキップ</div>
+          <div class="legend-item"><span class="dot" style="background:#fff;border:2px solid var(--pivot-color)"></span> pivot</div>
+        </div>
+        <div class="state-box">
+          <div class="state-item"><strong>R</strong><span id="pivot-r">{}</span></div>
+          <div class="state-item"><strong>P</strong><span id="pivot-p">{}</span></div>
+          <div class="state-item"><strong>X</strong><span id="pivot-x">{}</span></div>
+        </div>
+        <div class="pivot-info" id="pivot-info">pivot: -</div>
+        <div class="step-info" id="pivot-desc">pivot 版の動作を確認できます</div>
+        <pre><code><span class="code-line" id="p-line-0">BronKerbosch2(R, P, X):</span>
+<span class="code-line" id="p-line-1">  if P empty and X empty:</span>
+<span class="code-line" id="p-line-2">    report R</span>
+<span class="code-line" id="p-line-3">  choose pivot u in P∪X</span>
+<span class="code-line" id="p-line-4">  for v in P \\ N(u):</span>
+<span class="code-line" id="p-line-5">    BronKerbosch2(R∪{v}, P∩N(v), X∩N(v))</span>
+<span class="code-line" id="p-line-6">    P := P \\{v}</span>
+<span class="code-line" id="p-line-7">    X := X ∪ {v}</span></code></pre>
+      </div>
+    </div>
+
+    <div class="summary">
+      <strong>ポイント:</strong>
+      基本形は <code>P</code> のすべての頂点を試しますが、pivot 版は <code>P \ N(u)</code> だけを試します。
+      黄色で示す「スキップ」頂点は、pivot <code>u</code> の隣接頂点なので、今回は探索しなくても大丈夫です。
+    </div>
+  </div>
+
+  <script>
+    // Wikipedia の例グラフ
+    const nodes = [
+      { id: 1, x: 100, y: 80 },
+      { id: 2, x: 300, y: 80 },
+      { id: 3, x: 340, y: 180 },
+      { id: 4, x: 200, y: 240 },
+      { id: 5, x: 60, y: 180 },
+      { id: 6, x: 200, y: 150 }
+    ];
+    const edges = [
+      [1,2], [1,5], [2,3], [2,5], [2,6], [3,4], [3,6], [4,5], [4,6]
+    ];
+
+    const adj = {};
+    for (const n of nodes) adj[n.id] = new Set();
+    for (const [u, v] of edges) {
+      adj[u].add(v);
+      adj[v].add(u);
+    }
+
+    function setStr(s) {
+      if (s.size === 0) return '{}';
+      return '{' + Array.from(s).sort((a,b)=>a-b).join(', ') + '}';
+    }
+
+    function countIntersection(a, b) {
+      let c = 0;
+      for (const x of a) if (b.has(x)) c++;
+      return c;
+    }
+
+    function choosePivot(P, X) {
+      let bestU = null;
+      let maxOverlap = -1;
+      for (const u of new Set([...P, ...X])) {
+        const overlap = countIntersection(P, adj[u]);
+        if (overlap > maxOverlap) {
+          maxOverlap = overlap;
+          bestU = u;
+        }
+      }
+      return bestU;
+    }
+
+    // 基本形のステップ生成
+    const basicSteps = [];
+    const basicOutputs = [];
+    function recordBasic(desc, line, R, P, X, output) {
+      basicSteps.push({ desc, line, R: new Set(R), P: new Set(P), X: new Set(X), output });
+    }
+    function bronKerboschBasic(R, P, X) {
+      recordBasic(`再帰: R=${setStr(R)}, P=${setStr(P)}, X=${setStr(X)}`, 0, R, P, X, null);
+      if (P.size === 0 && X.size === 0) {
+        const out = new Set(R);
+        basicOutputs.push(out);
+        recordBasic(`✅ 極大クリーク: {${Array.from(out).join(', ')}}`, 2, R, P, X, out);
+        return;
+      }
+      recordBasic(`P または X が空ではない`, 1, R, P, X, null);
+      const Pcopy = new Set(P);
+      for (const v of Pcopy) {
+        recordBasic(`頂点 ${v} を選んで再帰`, 3, R, P, X, null);
+        bronKerboschBasic(new Set([...R, v]), new Set([...P].filter(u => adj[v].has(u))), new Set([...X].filter(u => adj[v].has(u))));
+        P.delete(v);
+        X.add(v);
+        recordBasic(`頂点 ${v} を P → X に移動`, 6, R, P, X, null);
+      }
+    }
+    bronKerboschBasic(new Set(), new Set([1,2,3,4,5,6]), new Set());
+
+    // pivot 版のステップ生成
+    const pivotSteps = [];
+    const pivotOutputs = [];
+    function recordPivot(desc, line, R, P, X, pivot, skipped, output) {
+      pivotSteps.push({ desc, line, R: new Set(R), P: new Set(P), X: new Set(X), pivot, skipped: new Set(skipped), output });
+    }
+    function bronKerboschPivot(R, P, X) {
+      recordPivot(`再帰: R=${setStr(R)}, P=${setStr(P)}, X=${setStr(X)}`, 0, R, P, X, null, new Set(), null);
+      if (P.size === 0 && X.size === 0) {
+        const out = new Set(R);
+        pivotOutputs.push(out);
+        recordPivot(`✅ 極大クリーク: {${Array.from(out).join(', ')}}`, 2, R, P, X, null, new Set(), out);
+        return;
+      }
+      recordPivot(`P または X が空ではない`, 1, R, P, X, null, new Set(), null);
+      const u = choosePivot(P, X);
+      const skip = new Set([...P].filter(v => adj[u].has(v)));
+      recordPivot(`pivot u=${u} を選択。${setStr(skip)} をスキップ`, 3, R, P, X, u, skip, null);
+      const candidates = new Set([...P].filter(v => !adj[u].has(v)));
+      for (const v of candidates) {
+        recordPivot(`頂点 ${v} を選んで再帰（P\\N(${u}) の中から）`, 4, R, P, X, u, skip, null);
+        bronKerboschPivot(new Set([...R, v]), new Set([...P].filter(w => adj[v].has(w))), new Set([...X].filter(w => adj[v].has(w))));
+        P.delete(v);
+        X.add(v);
+        recordPivot(`頂点 ${v} を P → X に移動`, 7, R, P, X, u, skip, null);
+      }
+    }
+    bronKerboschPivot(new Set(), new Set([1,2,3,4,5,6]), new Set());
+
+    let idx = -1;
+    let autoInterval = null;
+
+    function renderGraph(svgId, step, type) {
+      const svg = document.getElementById(svgId);
+      svg.innerHTML = '';
+      for (const [u, v] of edges) {
+        const a = nodes.find(n => n.id === u);
+        const b = nodes.find(n => n.id === v);
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', a.x);
+        line.setAttribute('y1', a.y);
+        line.setAttribute('x2', b.x);
+        line.setAttribute('y2', b.y);
+        line.setAttribute('class', 'edge');
+        svg.appendChild(line);
+      }
+      for (const n of nodes) {
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', n.x);
+        circle.setAttribute('cy', n.y);
+        circle.setAttribute('r', 20);
+        let cls = 'node';
+        let light = false;
+        if (step.R.has(n.id)) { cls += ' r'; light = true; }
+        else if (step.P.has(n.id)) { cls += ' p'; light = true; }
+        else if (step.X.has(n.id)) { cls += ' x'; light = true; }
+        if (type === 'pivot' && step.skipped && step.skipped.has(n.id)) {
+          cls += ' skip';
+          light = false;
+        }
+        if (type === 'pivot' && step.pivot === n.id) {
+          cls += ' pivot';
+        }
+        circle.setAttribute('class', cls);
+        svg.appendChild(circle);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', n.x);
+        text.setAttribute('y', n.y);
+        text.setAttribute('class', 'node-label' + (light ? ' light' : ''));
+        text.textContent = n.id;
+        svg.appendChild(text);
+      }
+    }
+
+    function render() {
+      const bStep = basicSteps[idx] || null;
+      const pStep = pivotSteps[idx] || null;
+
+      if (bStep) {
+        renderGraph('basicSvg', bStep, 'basic');
+        document.getElementById('basic-r').textContent = setStr(bStep.R);
+        document.getElementById('basic-p').textContent = setStr(bStep.P);
+        document.getElementById('basic-x').textContent = setStr(bStep.X);
+        document.getElementById('basic-desc').textContent = `Step ${idx+1}/${Math.max(basicSteps.length, pivotSteps.length)}: ${bStep.desc}`;
+        for (let i = 0; i <= 6; i++) {
+          document.getElementById('b-line-' + i).classList.toggle('active', i === bStep.line);
+        }
+      }
+
+      if (pStep) {
+        renderGraph('pivotSvg', pStep, 'pivot');
+        document.getElementById('pivot-r').textContent = setStr(pStep.R);
+        document.getElementById('pivot-p').textContent = setStr(pStep.P);
+        document.getElementById('pivot-x').textContent = setStr(pStep.X);
+        document.getElementById('pivot-info').textContent = pStep.pivot ?
+          `pivot u = ${pStep.pivot}。${setStr(pStep.skipped)} はスキップ` :
+          'pivot: -';
+        document.getElementById('pivot-desc').textContent = `Step ${idx+1}/${Math.max(basicSteps.length, pivotSteps.length)}: ${pStep.desc}`;
+        for (let i = 0; i <= 7; i++) {
+          document.getElementById('p-line-' + i).classList.toggle('active', i === pStep.line);
+        }
+      }
+
+      document.getElementById('prevBtn').disabled = idx <= 0;
+      document.getElementById('nextBtn').disabled = idx >= Math.max(basicSteps.length, pivotSteps.length) - 1;
+    }
+
+    function stepNext() {
+      if (idx < Math.max(basicSteps.length, pivotSteps.length) - 1) {
+        idx++;
+        render();
+      } else {
+        stopAuto();
+      }
+    }
+
+    function stepPrev() {
+      if (idx > 0) {
+        idx--;
+        render();
+      }
+    }
+
+    function reset() {
+      stopAuto();
+      idx = -1;
+      document.getElementById('basicSvg').innerHTML = '';
+      document.getElementById('pivotSvg').innerHTML = '';
+      document.getElementById('basic-r').textContent = '{}';
+      document.getElementById('basic-p').textContent = '{}';
+      document.getElementById('basic-x').textContent = '{}';
+      document.getElementById('pivot-r').textContent = '{}';
+      document.getElementById('pivot-p').textContent = '{}';
+      document.getElementById('pivot-x').textContent = '{}';
+      document.getElementById('basic-desc').textContent = '「次へ」で開始';
+      document.getElementById('pivot-desc').textContent = 'pivot 版の動作を確認できます';
+      document.getElementById('pivot-info').textContent = 'pivot: -';
+      for (let i = 0; i <= 6; i++) document.getElementById('b-line-' + i).classList.remove('active');
+      for (let i = 0; i <= 7; i++) document.getElementById('p-line-' + i).classList.remove('active');
+      document.getElementById('prevBtn').disabled = true;
+      document.getElementById('nextBtn').disabled = false;
+    }
+
+    function toggleAuto() {
+      if (autoInterval) {
+        stopAuto();
+      } else {
+        document.getElementById('autoBtn').textContent = '停止';
+        if (idx >= Math.max(basicSteps.length, pivotSteps.length) - 1) idx = -1;
+        autoInterval = setInterval(stepNext, 1400);
+      }
+    }
+
+    function stopAuto() {
+      if (autoInterval) {
+        clearInterval(autoInterval);
+        autoInterval = null;
+        document.getElementById('autoBtn').textContent = '自動再生';
+      }
+    }
+
+    reset();
+  </script>
+</body>
+</html>

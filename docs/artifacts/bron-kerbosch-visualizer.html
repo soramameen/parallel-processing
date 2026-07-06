@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bron–Kerbosch 可視化シミュレータ</title>
+  <style>
+    :root {
+      --bg: #f8f9fa;
+      --text: #212529;
+      --muted: #6c757d;
+      --r-color: #dc3545;
+      --p-color: #0d6efd;
+      --x-color: #6c757d;
+      --neutral: #dee2e6;
+      --code-bg: #f1f3f5;
+      --border: #dee2e6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+      margin: 0;
+      padding: 1rem;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.2rem;
+    }
+
+    .panel h2 {
+      font-size: 1.1rem;
+      margin-top: 0;
+      margin-bottom: 1rem;
+      color: #495057;
+    }
+
+    svg {
+      width: 100%;
+      height: 300px;
+      background: #fafbfc;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .node {
+      fill: #fff;
+      stroke: #495057;
+      stroke-width: 2;
+      transition: all 0.3s ease;
+    }
+
+    .node.r {
+      fill: var(--r-color);
+      stroke: var(--r-color);
+      color: #fff;
+    }
+
+    .node.p {
+      fill: var(--p-color);
+      stroke: var(--p-color);
+      color: #fff;
+    }
+
+    .node.x {
+      fill: var(--x-color);
+      stroke: var(--x-color);
+      color: #fff;
+    }
+
+    .node-label {
+      font-size: 14px;
+      font-weight: bold;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+      fill: #212529;
+      transition: fill 0.3s ease;
+    }
+
+    .node-label.light {
+      fill: #fff;
+    }
+
+    .edge {
+      stroke: #adb5bd;
+      stroke-width: 2;
+    }
+
+    .legend {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    pre {
+      background: var(--code-bg);
+      padding: 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      overflow-x: auto;
+      line-height: 1.5;
+    }
+
+    .code-line {
+      padding: 0.1rem 0.3rem;
+      border-radius: 4px;
+    }
+
+    .code-line.active {
+      background: #fff3cd;
+      font-weight: bold;
+    }
+
+    .state-box {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+
+    .state-item {
+      background: var(--code-bg);
+      border-radius: 6px;
+      padding: 0.6rem;
+      text-align: center;
+    }
+
+    .state-item strong {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin: 1.5rem 0;
+    }
+
+    button {
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 6px;
+      background: var(--p-color);
+      color: #fff;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #0b5ed7;
+    }
+
+    button:disabled {
+      background: var(--neutral);
+      cursor: not-allowed;
+    }
+
+    .step-info {
+      background: var(--code-bg);
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+      min-height: 3rem;
+    }
+
+    .output-list {
+      margin-top: 1rem;
+      padding: 0.5rem;
+      background: #f8f9fa;
+      border-radius: 6px;
+      min-height: 2rem;
+    }
+
+    .clique-tag {
+      display: inline-block;
+      background: var(--r-color);
+      color: #fff;
+      padding: 0.2rem 0.6rem;
+      border-radius: 12px;
+      margin: 0.2rem;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Bron–Kerbosch 可視化シミュレータ</h1>
+    <p class="subtitle">基本形アルゴリズムをステップごとに追えます。「次へ」ボタンで進めてください。</p>
+
+    <div class="controls">
+      <button id="prevBtn" onclick="stepPrev()">← 前へ</button>
+      <button id="nextBtn" onclick="stepNext()">次へ →</button>
+      <button id="autoBtn" onclick="toggleAuto()">自動再生</button>
+      <button onclick="reset()">リセット</button>
+    </div>
+
+    <div class="layout">
+      <div class="panel">
+        <h2>グラフ</h2>
+        <svg id="graphSvg" viewBox="0 0 400 300"></svg>
+        <div class="legend">
+          <div class="legend-item"><span class="dot" style="background:var(--r-color)"></span> R（確定）</div>
+          <div class="legend-item"><span class="dot" style="background:var(--p-color)"></span> P（候補）</div>
+          <div class="legend-item"><span class="dot" style="background:var(--x-color)"></span> X（除外）</div>
+          <div class="legend-item"><span class="dot" style="background:#fff;border:2px solid #495057"></span> 該当なし</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>現在の状態</h2>
+        <div class="state-box">
+          <div class="state-item"><strong>R</strong><span id="rState">{}</span></div>
+          <div class="state-item"><strong>P</strong><span id="pState">{}</span></div>
+          <div class="state-item"><strong>X</strong><span id="xState">{}</span></div>
+        </div>
+        <div class="step-info" id="stepDescription">スタートボタンを押して始めてください。</div>
+        <div class="output-list" id="outputList">出力された極大クリーク: </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top: 2rem;">
+      <h2>疑似コード</h2>
+      <pre id="codeBlock"><code><span class="code-line" id="line-0">algorithm BronKerbosch(R, P, X):</span>
+          <span class="code-line" id="line-1"> if P is empty and X is empty:</span>
+          <span class="code-line" id="line-2"> report R as a maximal clique</span>
+          <span class="code-line" id="line-3"> for each vertex v in P:</span>
+          <span class="code-line" id="line-4"> BronKerbosch(R ∪ {v}, P ∩ N(v), X ∩ N(v))</span>
+          <span class="code-line" id="line-5"> P := P \ {v}</span>
+          <span class="code-line" id="line-6"> X := X ∪ {v}</span></code></pre>
+    </div>
+  </div>
+
+  <script>
+    // 固定グラフ: Wikipedia の例
+    const nodes = [
+      {id: 1, x: 140, y: 80},
+      {id: 2, x: 260, y: 80},
+      {id: 3, x: 320, y: 180},
+      {id: 4, x: 200, y: 240},
+      {id: 5, x: 80, y: 180},
+      {id: 6, x: 200, y: 160}
+    ];
+    const edges = [
+      [1, 2], [1, 5], [2, 3], [2, 5], [2, 6], [3, 4], [3, 6], [4, 5], [4, 6]
+    ];
+
+    const adj = {};
+    for (const n of nodes) adj[n.id] = new Set();
+    for (const [u, v] of edges) {
+      adj[u].add(v);
+      adj[v].add(u);
+    }
+
+    // シミュレーション用のステップを事前に生成
+    const steps = [];
+    const outputs = [];
+
+    function record(desc, line, R, P, X, output) {
+      steps.push({desc, line, R: new Set(R), P: new Set(P), X: new Set(X), output});
+    }
+
+    function bronKerbosch(R, P, X, depth) {
+      record(`再帰呼び出し: R=${setStr(R)}, P=${setStr(P)}, X=${setStr(X)}`, 0, R, P, X, null);
+
+      if (P.size === 0 && X.size === 0) {
+        const out = new Set(R);
+        outputs.push(out);
+        record(`✅ 極大クリーク発見: {${Array.from(out).join(', ')}}`, 2, R, P, X, out);
+        return;
+      }
+      record(`P または X が空ではないので探索を続ける`, 1, R, P, X, null);
+
+      const Pcopy = new Set(P);
+      for (const v of Pcopy) {
+        record(`頂点 ${v} を P から選ぶ`, 3, R, P, X, null);
+
+        const newR = new Set(R);
+        newR.add(v);
+        const newP = new Set([...P].filter(u => adj[v].has(u)));
+        const newX = new Set([...X].filter(u => adj[v].has(u)));
+
+        bronKerbosch(newR, newP, newX, depth + 1);
+
+        P.delete(v);
+        X.add(v);
+        record(`頂点 ${v} を P から X に移動`, 6, R, P, X, null);
+      }
+    }
+
+    bronKerbosch(new Set(), new Set([1, 2, 3, 4, 5, 6]), new Set(), 0);
+
+    function setStr(s) {
+      if (s.size === 0) return '{}';
+      return '{' + Array.from(s).sort((a, b) => a - b).join(', ') + '}';
+    }
+
+    let currentStep = -1;
+    let autoInterval = null;
+
+    function render() {
+      const step = steps[currentStep];
+      if (!step) return;
+
+      // グラフ描画
+      const svg = document.getElementById('graphSvg');
+      svg.innerHTML = '';
+
+      // 辺
+      for (const [u, v] of edges) {
+        const a = nodes.find(n => n.id === u);
+        const b = nodes.find(n => n.id === v);
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', a.x);
+        line.setAttribute('y1', a.y);
+        line.setAttribute('x2', b.x);
+        line.setAttribute('y2', b.y);
+        line.setAttribute('class', 'edge');
+        svg.appendChild(line);
+      }
+
+      // 頂点
+      for (const n of nodes) {
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', n.x);
+        circle.setAttribute('cy', n.y);
+        circle.setAttribute('r', 22);
+        let cls = 'node';
+        let light = false;
+        if (step.R.has(n.id)) {cls += ' r'; light = true;}
+        else if (step.P.has(n.id)) {cls += ' p'; light = true;}
+        else if (step.X.has(n.id)) {cls += ' x'; light = true;}
+        circle.setAttribute('class', cls);
+        svg.appendChild(circle);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', n.x);
+        text.setAttribute('y', n.y);
+        text.setAttribute('class', 'node-label' + (light ? ' light' : ''));
+        text.textContent = n.id;
+        svg.appendChild(text);
+      }
+
+      // 状態表示
+      document.getElementById('rState').textContent = setStr(step.R);
+      document.getElementById('pState').textContent = setStr(step.P);
+      document.getElementById('xState').textContent = setStr(step.X);
+      document.getElementById('stepDescription').textContent = `Step ${currentStep + 1}/${steps.length}: ${step.desc}`;
+
+      // 疑似コードのハイライト
+      for (let i = 0; i <= 6; i++) {
+        document.getElementById('line-' + i).classList.toggle('active', i === step.line);
+      }
+
+      // 出力リスト
+      const outputHtml = outputs.slice(0, steps.slice(0, currentStep + 1).filter(s => s.output).length)
+        .map(o => `<span class="clique-tag">{${Array.from(o).sort((a, b) => a - b).join(', ')}}</span>`)
+        .join('');
+      document.getElementById('outputList').innerHTML = '出力された極大クリーク: ' + (outputHtml || 'なし');
+
+      // ボタン状態
+      document.getElementById('prevBtn').disabled = currentStep <= 0;
+      document.getElementById('nextBtn').disabled = currentStep >= steps.length - 1;
+    }
+
+    function stepNext() {
+      if (currentStep < steps.length - 1) {
+        currentStep++;
+        render();
+      } else {
+        stopAuto();
+      }
+    }
+
+    function stepPrev() {
+      if (currentStep > 0) {
+        currentStep--;
+        render();
+      }
+    }
+
+    function reset() {
+      stopAuto();
+      currentStep = -1;
+      document.getElementById('graphSvg').innerHTML = '';
+      document.getElementById('rState').textContent = '{}';
+      document.getElementById('pState').textContent = '{}';
+      document.getElementById('xState').textContent = '{}';
+      document.getElementById('stepDescription').textContent = '「次へ」ボタンで始めてください。';
+      document.getElementById('outputList').innerHTML = '出力された極大クリーク: ';
+      for (let i = 0; i <= 6; i++) {
+        document.getElementById('line-' + i).classList.remove('active');
+      }
+      document.getElementById('prevBtn').disabled = true;
+      document.getElementById('nextBtn').disabled = false;
+    }
+
+    function toggleAuto() {
+      if (autoInterval) {
+        stopAuto();
+      } else {
+        document.getElementById('autoBtn').textContent = '停止';
+        if (currentStep >= steps.length - 1) currentStep = -1;
+        autoInterval = setInterval(() => {
+          stepNext();
+        }, 1200);
+      }
+    }
+
+    function stopAuto() {
+      if (autoInterval) {
+        clearInterval(autoInterval);
+        autoInterval = null;
+        document.getElementById('autoBtn').textContent = '自動再生';
+      }
+    }
+
+    // 初期表示
+    reset();
+  </script>
+</body>
+
+</html>
