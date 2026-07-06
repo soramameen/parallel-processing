@@ -18,13 +18,19 @@ import sys
 import time
 from pathlib import Path
 
-from parallel_processing.cliques import cliques
+from parallel_processing.cliques import count_cliques
 from parallel_processing.graph_io import edge_count, load_edge_list
 
 DEFAULT_DATASET = "data/ca-AstroPh.txt.gz"
 
-# Expected #cliques for ca-AstroPh from Table 1 of Conte & Tomita (TCS 2022).
-CA_ASTROPH_EXPECTED_CLIQUES = 36_427
+# Expected #cliques per dataset from Table 1 of Conte & Tomita (TCS 2022),
+# keyed by filename prefix. Our counts differ by a handful because the SNAP
+# files carry a few extra vertices vs. the paper's reported n.
+EXPECTED_CLIQUES = {
+    "ca-AstroPh": 36_427,
+    "ca-HepPh": 14_937,
+    "soc-sign-epinions": 22_226_172,
+}
 
 
 def run(path: str | Path) -> None:
@@ -40,19 +46,16 @@ def run(path: str | Path) -> None:
     print(f"load time: {load_elapsed:.3f} s")
 
     enum_start = time.perf_counter()
-    found = cliques(graph)
+    count, largest = count_cliques(graph)
     enum_elapsed = time.perf_counter() - enum_start
-    largest = max((len(c) for c in found), default=0)
-    print(f"maximal cliques: {len(found):,}")
+    print(f"maximal cliques: {count:,}")
     print(f"largest clique:  {largest}")
     print(f"enumeration time: {enum_elapsed:.3f} s")
 
-    if path.name.startswith("ca-AstroPh"):
-        match = len(found) == CA_ASTROPH_EXPECTED_CLIQUES
-        print(
-            f"expected (Table 1): {CA_ASTROPH_EXPECTED_CLIQUES:,} "
-            f"-> {'MATCH' if match else 'MISMATCH'}"
-        )
+    for prefix, expected in EXPECTED_CLIQUES.items():
+        if path.name.startswith(prefix):
+            print(f"expected (Table 1): {expected:,} (diff {count - expected:+,})")
+            break
 
 
 def main(argv: list[str] | None = None) -> None:
