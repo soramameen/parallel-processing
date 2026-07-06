@@ -76,6 +76,40 @@ def cliques(graph: Graph) -> list[frozenset[int]]:
     return _sort_cliques(result)
 
 
+def count_cliques(graph: Graph) -> tuple[int, int]:
+    """Count maximal cliques without materialising them; return (count, largest).
+
+    Same search as :func:`cliques` but never builds ``frozenset``\\ s nor a
+    result list, so it stays O(1) in output memory. Essential for graphs with
+    tens of millions of maximal cliques (e.g. soc-sign-epinions), where
+    collecting every clique would exhaust memory.
+    """
+    count = 0
+    largest = 0
+    q: list[int] = []
+
+    sys.setrecursionlimit(max(sys.getrecursionlimit(), len(graph) + 1000))
+
+    def expand(subg: set[int], cand: set[int]) -> None:
+        nonlocal count, largest
+        if not subg:
+            count += 1
+            if len(q) > largest:
+                largest = len(q)
+            return
+        pivot = max(subg, key=lambda u: len(cand & graph.get(u, set())))
+        ext = cand - graph.get(pivot, set())
+        for p in list(ext):
+            neighbours = graph.get(p, set())
+            q.append(p)
+            expand(subg & neighbours, cand & neighbours)
+            q.pop()
+            cand = cand - {p}
+
+    expand(set(graph), set(graph))
+    return count, largest
+
+
 def main() -> None:
     """Run CLIQUES on a sample graph and print the maximal cliques."""
     # The same 6-vertex graph used by bron_kerbosch.main for a concrete example.

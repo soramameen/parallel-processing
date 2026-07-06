@@ -8,7 +8,7 @@ which is itself validated against ``bron_kerbosch_simple`` in
 import random
 
 from parallel_processing.bron_kerbosch import bron_kerbosch_pivot
-from parallel_processing.cliques import cliques
+from parallel_processing.cliques import cliques, count_cliques
 
 SAMPLE_GRAPH: dict[int, set[int]] = {
     1: {2, 5},
@@ -64,3 +64,20 @@ def test_isolated_vertex_alongside_edge() -> None:
     graph: dict[int, set[int]] = {0: set(), 1: {2}, 2: {1}}
     assert cliques(graph) == [frozenset({0}), frozenset({1, 2})]
     assert cliques(graph) == bron_kerbosch_pivot(graph)
+
+
+def test_count_cliques_matches_cliques_on_random_graphs() -> None:
+    """count_cliques returns the same count and largest size as cliques."""
+    rng = random.Random(12345)
+    for _ in range(50):
+        n = rng.randint(2, 8)
+        graph: dict[int, set[int]] = {i: set() for i in range(n)}
+        for i in range(n):
+            for j in range(i + 1, n):
+                if rng.random() < 0.4:
+                    graph[i].add(j)
+                    graph[j].add(i)
+        enumerated = cliques(graph)
+        count, largest = count_cliques(graph)
+        assert count == len(enumerated)
+        assert largest == max(len(c) for c in enumerated)
