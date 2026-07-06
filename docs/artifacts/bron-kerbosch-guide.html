@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bron–Kerbosch アルゴリズム入門</title>
+  <style>
+    :root {
+      --bg: #f8f9fa;
+      --text: #212529;
+      --muted: #6c757d;
+      --accent: #0d6efd;
+      --accent-light: #e7f1ff;
+      --code-bg: #f1f3f5;
+      --border: #dee2e6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.8;
+      color: var(--text);
+      background: var(--bg);
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      background: #fff;
+      box-shadow: 0 0 20px rgba(0,0,0,0.05);
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      color: var(--accent);
+    }
+    h2 {
+      font-size: 1.4rem;
+      margin-top: 2.5rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 2px solid var(--accent-light);
+    }
+    h3 {
+      font-size: 1.1rem;
+      margin-top: 1.8rem;
+      color: #495057;
+    }
+    p { margin: 1rem 0; }
+    ul, ol { margin: 1rem 0; padding-left: 1.5rem; }
+    li { margin: 0.4rem 0; }
+    .lead {
+      font-size: 1.1rem;
+      color: var(--muted);
+      margin-bottom: 2rem;
+    }
+    code {
+      background: var(--code-bg);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.9em;
+    }
+    pre {
+      background: var(--code-bg);
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+    }
+    pre code {
+      background: transparent;
+      padding: 0;
+      font-size: 0.85rem;
+    }
+    .box {
+      background: var(--accent-light);
+      border-left: 4px solid var(--accent);
+      padding: 1rem 1.2rem;
+      border-radius: 0 8px 8px 0;
+      margin: 1.5rem 0;
+    }
+    .box strong { color: var(--accent); }
+    .term {
+      font-weight: bold;
+      color: #084298;
+    }
+    .graph {
+      text-align: center;
+      font-family: monospace;
+      background: var(--code-bg);
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+      line-height: 1.6;
+    }
+    footer {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Bron–Kerbosch アルゴリズム入門</h1>
+    <p class="lead">グラフの「極大クリーク」を効率よく列挙する再帰的探索アルゴリズムを、図と疑似コードでやさしく解説します。</p>
+
+    <h2>1. クリークって何？</h2>
+    <p>グラフとは「頂点（点）」と「辺（点同士を結ぶ線）」からなる構造です。</p>
+    <ul>
+      <li><span class="term">クリーク（clique）</span>: 互いにすべて辺で結ばれている頂点の集まり</li>
+      <li><span class="term">極大クリーク（maximal clique）</span>: それ以上頂点を追加できないクリーク</li>
+      <li><span class="term">最大クリーク（maximum clique）</span>: 頂点数が最も多いクリーク</li>
+    </ul>
+
+    <div class="box">
+      <strong>例:</strong> 頂点 {1,2,3} が互いに繋がっていて、どこにも追加できないなら、それは極大クリークです。サイズが最も大きい極大クリークが最大クリークです。
+    </div>
+
+    <h2>2. Bron–Kerbosch で何ができる？</h2>
+    <p>Bron–Kerbosch は<strong>すべての極大クリークを列挙する</strong>アルゴリズムです。1973年に Coenraad Bron と Joep Kerbosch によって考案されました。</p>
+    <p>「最大クリークを求めたい」場合は、極大クリークを列挙してその中から最大のものを選びます。ただし、大きなグラフでは列挙数が爆発するので、途中で「これ以上大きなクリークは作れない」部分木を切る「枝刈り」を入れると効率よく最大クリークが求められます。</p>
+
+    <h2>3. 3つの箱 R, P, X</h2>
+    <p>アルゴリズムは再帰的に動作し、各呼び出しで3つの頂点集合を持ちます。</p>
+    <ul>
+      <li><code>R</code>: 今作っているクリークに<strong>確定で入っている</strong>頂点</li>
+      <li><code>P</code>: <strong>まだ追加候補</strong>になっている頂点</li>
+      <li><code>X</code>: <strong>除外済み</strong>の頂点</li>
+    </ul>
+
+    <div class="box">
+      <strong>終了条件:</strong> <code>P</code> と <code>X</code> が両方空になったら、<code>R</code> は極大クリークなので出力します。
+    </div>
+
+    <h2>4. 基本形のアルゴリズム</h2>
+    <pre><code>algorithm BronKerbosch1(R, P, X):
+    if P is empty and X is empty:
+        report R as a maximal clique
+
+    for each vertex v in P:
+        BronKerbosch1(
+            R ∪ {v},
+            P ∩ N(v),
+            X ∩ N(v)
+        )
+        P := P \ {v}
+        X := X ∪ {v}</code></pre>
+
+    <p><code>N(v)</code> は頂点 <code>v</code> の隣接頂点の集合です。</p>
+
+    <h3>動きのイメージ</h3>
+    <ol>
+      <li><code>P</code> から頂点 <code>v</code> を1つ選ぶ</li>
+      <li><code>v</code> を <code>R</code> に入れ、<code>v</code> と繋がっている頂点だけを新しい <code>P</code> にする</li>
+      <li>再帰的に探索</li>
+      <li>探索が終わったら <code>v</code> を <code>P</code> から外し、<code>X</code> に入れる</li>
+    </ol>
+
+    <h2>5. pivot による高速化</h2>
+    <p>基本形は非極大クリークも探索してしまい、無駄が多いです。pivot を使うと分岐数を減らせます。</p>
+
+    <div class="box">
+      <strong>ポイント:</strong> pivot <code>u</code> とその隣接頂点は後で調べられるので、今はスキップできます。つまり、<code>P \ N(u)</code> だけを探索すれば十分です。
+    </div>
+
+    <pre><code>algorithm BronKerbosch2(R, P, X):
+    if P is empty and X is empty:
+        report R as a maximal clique
+
+    choose a pivot vertex u in P ∪ X
+
+    for each vertex v in P \ N(u):
+        BronKerbosch2(
+            R ∪ {v},
+            P ∩ N(v),
+            X ∩ N(v)
+        )
+        P := P \ {v}
+        X := X ∪ {v}</code></pre>
+
+    <p>Tomita 版では、pivot として「<code>P</code> と重なりが最も少ない頂点」を選ぶことで、再帰呼び出し数を大幅に削減します。</p>
+
+    <h2>6. 頂点順序による高速化</h2>
+    <p>さらに、グラフの<strong>退化次数順（degeneracy ordering）</strong>で頂点を並べると、疎なグラフで非常に速くなります。SNS グラフなどの実世界グラフでは、この version がよく使われます。</p>
+
+    <pre><code>algorithm BronKerbosch3(G):
+    P = V(G)
+    R = empty
+    X = empty
+
+    for each vertex v in a degeneracy ordering of G:
+        BronKerbosch2(
+            {v},
+            P ∩ N(v),
+            X ∩ N(v)
+        )
+        P := P \ {v}
+        X := X ∪ {v}</code></pre>
+
+    <h2>7. 具体例</h2>
+    <p>次のようなグラフを考えます。</p>
+    <div class="graph">
+      1 ─ 2 ─ 3 ─ 4 ─ 5<br>
+      │         │<br>
+      └─────────┘
+    </div>
+    <p>このグラフの極大クリークは <code>{1,2,5}</code>, <code>{2,3}</code>, <code>{3,4}</code>, <code>{4,5}</code> です。Bron–Kerbosch はこれらを重複なく列挙します。</p>
+
+    <h2>8. なぜ並列化できる？</h2>
+    <p>Bron–Kerbosch は再帰的に<strong>独立な部分問題</strong>を作ります。例えば、最初の分岐で「頂点1を含む極大クリーク」「頂点2を含む極大クリーク」…は互いに干渉しません。</p>
+    <p>そのため、各部分問題を別の CPU コアに割り当てて並列に探索できます。Python なら <code>multiprocessing</code> を使うのが一般的です。</p>
+
+    <div class="box">
+      <strong>注意:</strong> グラフが非対称だと、一部の部分問題だけ重くなり「負荷偏り」が起きます。これは並列化の課題であり、評価のネタにもなります。
+    </div>
+
+    <h2>9. まとめ</h2>
+    <ul>
+      <li>Bron–Kerbosch は<strong>すべての極大クリークを列挙する</strong>再帰アルゴリズム</li>
+      <li>3つの集合 <code>R, P, X</code> を使って探索状態を管理する</li>
+      <li><strong>pivot</strong> で無駄な分岐を減らせる</li>
+      <li><strong>degeneracy ordering</strong> で疎なグラフを高速に処理できる</li>
+      <li>部分問題が独立なので<strong>並列化</strong>も可能</li>
+    </ul>
+
+    <footer>
+      <p>作成日: 2026-06-17</p>
+      <p>参考: Wikipedia「Bron–Kerbosch algorithm」、Tomita et al. (2006)</p>
+    </footer>
+  </div>
+</body>
+</html>
