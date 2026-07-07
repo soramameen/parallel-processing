@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>なぜ列挙するのか — 列挙問題のモチベーション</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/theme/black.css" id="theme">
+  <style>
+    :root {
+      --clique: #ff6b6b;   /* クリーク列挙 */
+      --pattern: #4dabf7;  /* パターンマイニング */
+      --theory: #ffd43b;   /* 列挙理論 */
+      --applied: #69db7c;  /* 応用 */
+    }
+    .reveal { font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+    .reveal h1, .reveal h2, .reveal h3 { font-weight: 700; letter-spacing: .02em; text-transform: none; }
+    .reveal h1 { font-size: 2.0em; }
+    .reveal h2 { font-size: 1.4em; margin-bottom: .5em; }
+    .reveal h3 { font-size: 1.0em; }
+    .reveal section { text-align: left; }
+    .reveal .center { text-align: center; }
+    .reveal p, .reveal li { font-size: .8em; line-height: 1.5; }
+    .reveal small { font-size: .5em; color: #9aa4b0; }
+    .lead { font-size: 1.1em !important; color: #dfe6ee; }
+    .tag { display: inline-block; padding: .12em .6em; border-radius: 999px; font-size: .55em; font-weight: 700; color: #10141a; vertical-align: middle; }
+    .tag-clique { background: var(--clique); } .tag-pattern { background: var(--pattern); }
+    .tag-theory { background: var(--theory); } .tag-applied { background: var(--applied); }
+    blockquote.src { border-left: 3px solid var(--pattern); background: rgba(77,171,247,.08); padding: .45em .9em; font-size: .58em; font-style: italic; color: #c5ccd6; border-radius: 4px; margin: .4em 0; }
+    blockquote.src cite { display:block; font-style: normal; color:#8b95a1; margin-top:.3em; font-size:.9em; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .8em; }
+    .card { background: rgba(255,255,255,.05); border-radius: 10px; padding: .7em 1em; }
+    .card h3 { font-size: .82em; margin: 0 0 .3em; }
+    .card p, .card li { font-size: .68em; }
+    .paper { font-size: .62em; color:#aab3bd; margin:.15em 0; }
+    .paper b { color:#e6ebf1; }
+    .type-list { list-style: none; margin-left: 0; }
+    .type-list li { position: relative; padding-left: 1.7em; margin-bottom: .5em; }
+    .type-list li::before { content: attr(data-n); position: absolute; left: 0; top:.05em; width:1.25em; height:1.25em; line-height:1.25em; text-align:center; border-radius:50%; font-size:.7em; font-weight:700; color:#10141a; background: var(--theory); }
+    .four { display:flex; gap:.5em; justify-content:center; flex-wrap:wrap; margin:.6em 0; }
+    .four > div { flex:1; min-width:150px; padding:.7em .5em; border-radius:12px; text-align:center; color:#10141a; font-weight:700; font-size:.75em; }
+    .four small { display:block; color:#10141a; opacity:.75; font-weight:500; margin-top:.25em; font-size:.85em; }
+    table.mini { font-size: .62em; border-collapse: collapse; width: 100%; }
+    table.mini th, table.mini td { border: 1px solid rgba(255,255,255,.15); padding: .35em .5em; vertical-align: top; }
+    table.mini th { background: rgba(255,255,255,.06); }
+    .refs { font-size:.56em; color:#aab3bd; line-height:1.45; }
+    .refs a { color:#7bb8f0; }
+    .badge-1 { color: var(--applied); font-weight:700; }
+    .badge-2 { color: var(--clique); font-weight:700; }
+    .hl { color: var(--theory); font-weight:700; }
+  </style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- 1. Title -->
+<section data-background-gradient="linear-gradient(135deg, #1a1f2e 0%, #2a1f3d 100%)">
+  <h1>なぜ「列挙」するのか</h1>
+  <p class="lead center">列挙問題を解くモチベーション<br>— 研究者の論文アブストラクトを一次情報として</p>
+  <p class="center" style="margin-top:1.2em;">
+    <span class="tag tag-clique">クリーク列挙</span>
+    <span class="tag tag-pattern">パターンマイニング</span>
+    <span class="tag tag-theory">列挙理論</span>
+    <span class="tag tag-applied">実応用</span>
+  </p>
+  <p class="center"><small>4領域を並列調査し横断的に類型化 / 2026</small></p>
+</section>
+
+<!-- 2. 問い -->
+<section>
+  <h2>そもそも「列挙問題」とは</h2>
+  <p>ある条件を満たす解を<strong>1つ見つける</strong>のではなく、<strong>すべて漏れなく出力する</strong>問題。解の総数はしばしば入力サイズに対して<span class="hl">指数的</span>に増える。</p>
+  <blockquote class="src">
+    "…the size of the query result may be far too large to be computed entirely…"
+    <cite>Berkholz &amp; Schweikardt 2020 — 全結果は巨大すぎて一度には作れない</cite>
+  </blockquote>
+  <p>だからこそ「なぜ全部出す必要があるのか」「どうすれば現実的コストで出せるのか」という<strong>2つの問い</strong>が研究の駆動力になる。本スライドは前者（＝動機）を、論文アブストラクトの原文から拾い集めた。</p>
+</section>
+
+<!-- 3. 調査方法 -->
+<section>
+  <h2>調査方法</h2>
+  <div class="four">
+    <div style="background:var(--clique)">A クリーク列挙<small>Bron–Kerbosch〜GPU並列</small></div>
+    <div style="background:var(--pattern)">B パターンマイニング<small>gSpan / モチーフ / 頻出集合</small></div>
+    <div style="background:var(--theory)">C 列挙理論<small>reverse search / delay / 計算量</small></div>
+    <div style="background:var(--applied)">D 実応用<small>生物 / SNS / DB / 化学 / SAT</small></div>
+  </div>
+  <ul>
+    <li>4領域を<strong>並列のサブエージェント</strong>が同時に文献調査。</li>
+    <li>一次情報は<strong>論文のアブストラクト／導入部の原文</strong>（arXiv・出版社公式抄録・著者PDF）。</li>
+    <li>抄録を取得できず二次情報（検索スニペット等）に頼った箇所は最終スライドで明示。</li>
+  </ul>
+</section>
+
+<!-- 4. 全体像: メタ類型 -->
+<section data-background-gradient="linear-gradient(135deg, #16203a 0%, #1f3d2d 100%)">
+  <h2>結論：動機は4つのメタ類型に集約</h2>
+  <div class="grid2">
+    <div class="card"><h3 class="badge-1">① 構造 = 意味</h3><p>密な部分構造そのものが実世界の機能単位（複合体・コミュニティ・モチーフ）に対応する。<strong>発見のために列挙する。</strong></p></div>
+    <div class="card"><h3 class="badge-1">② 全解が要件</h3><p>1解では不十分。検証・逆問題・網羅探索では「条件を満たす<strong>すべて</strong>」が答えそのもの。</p></div>
+    <div class="card"><h3 class="badge-2">③ 出力に見合う効率</h3><p>解数が指数的だから、入力だけでなく<strong>出力サイズ・遅延・空間</strong>で計算量を測り最適化する。</p></div>
+    <div class="card"><h3 class="badge-2">④ 規模への挑戦</h3><p>現代の巨大グラフ／DBに既存手法が耐えず、<strong>外部メモリ・並列・GPU化</strong>が動機になる。</p></div>
+  </div>
+  <p class="center" style="margin-top:.6em;"><small>①② =「なぜ列挙するか」／ ③④ =「どう列挙するか」。以降で領域ごとに原文を見る。</small></p>
+</section>
+
+<!-- 5. A クリーク列挙 概観 -->
+<section>
+  <h2><span class="tag tag-clique">A</span> クリーク列挙のモチベーション</h2>
+  <p>興味深い<strong>時代的傾向</strong>が見えた。古典論文のアブストラクトは動機が薄く、アルゴリズムと計算量に徹する。<span class="hl">応用動機が前面化するのは大規模・並列時代（2010年以降）</span>。</p>
+  <table class="mini">
+    <tr><th>論文</th><th>アブストラクトの主眼</th></tr>
+    <tr><td>Bron &amp; Kerbosch 1973</td><td>動機の記述なし。2つのバックトラッキング法の提示に徹する</td></tr>
+    <tr><td>Tomita et al. 2006</td><td>最悪計算量 O(3<sup>n/3</sup>) の最適性証明＝「どこまで速くできるか」</td></tr>
+    <tr><td>Eppstein et al. 2010</td><td>疎グラフの退化度 d を利用し Bron–Kerbosch を near-optimal 化</td></tr>
+    <tr><td>Cheng et al. 2010/11</td><td>SNS・バイオの基礎問題。巨大network×メモリ制約 → 外部メモリ化</td></tr>
+    <tr><td>Das et al. 2020 / Almasri 2022</td><td>稠密構造発見のプリミティブ。高コスト → 並列・GPU化</td></tr>
+  </table>
+</section>
+
+<!-- 6. A 原文 -->
+<section>
+  <h2><span class="tag tag-clique">A</span> 大規模時代に前面化する動機</h2>
+  <blockquote class="src">
+    "Maximal clique enumeration is a fundamental problem in graph theory and has important applications in many areas such as <strong>social network analysis and bioinformatics</strong>… the best existing algorithms require memory space linear in the size of the input graph. This has become a serious concern in view of the <strong>massive volume of today's fast-growing networks</strong>."
+    <cite>Cheng, Ke, Fu, Yu, Zhu — SIGMOD 2010 / ACM TODS 2011</cite>
+  </blockquote>
+  <blockquote class="src">
+    "Maximal Clique Enumeration (MCE) is a fundamental graph mining problem, and is useful as a primitive in <strong>identifying dense structures in a graph</strong>."
+    <cite>Das, Sanei-Mehri, Tirthapura — ACM TOPC 2020 (arXiv:2001.11433)</cite>
+  </blockquote>
+  <p class="paper">→ 極大クリーク＝<strong>稠密構造（コミュニティ／複合体）の基本単位</strong>という位置づけ（メタ類型①）＋<strong>規模への挑戦</strong>（④）。</p>
+</section>
+
+<!-- 7. B パターンマイニング -->
+<section>
+  <h2><span class="tag tag-pattern">B</span> パターン・部分グラフ列挙</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>科学的発見（構造＝設計原理）</h3>
+      <blockquote class="src">"…we defined 'network motifs,' patterns of interconnections occurring… at numbers that are significantly higher than those in randomized networks."<cite>Milo et al. — Science 2002</cite></blockquote>
+      <p class="paper">高頻度パターン＝ネットワークの<strong>基本構成要素</strong>。生物・工学の設計原理を理解する手段。</p>
+    </div>
+    <div class="card">
+      <h3>知識発見＋大規模での効率</h3>
+      <blockquote class="src">"Frequent substructure pattern mining has been an emerging data mining problem with many scientific and commercial applications."<cite>Yan &amp; Han — gSpan, ICDM 2002</cite></blockquote>
+      <p class="paper">ラベル付きグラフは何でも表せる汎用モデル。中核は<strong>部分グラフ同型判定（NP完全）</strong>のコスト削減。</p>
+    </div>
+  </div>
+  <blockquote class="src">"…candidate set generation is still costly, especially when there exist prolific patterns and/or long patterns."<cite>Han, Pei, Yin — FP-growth, SIGMOD 2000</cite></blockquote>
+  <p class="paper">Apriori（Agrawal &amp; Srikant 1994）以来、頻出集合列挙は<strong>関連規則の下流タスク</strong>。gSpan / FP-growth は「候補生成なしで速く列挙する」ことが動機。</p>
+</section>
+
+<!-- 8. C 列挙理論 概念図 -->
+<section>
+  <h2><span class="tag tag-theory">C</span> 列挙理論：4つの効率尺度</h2>
+  <p>解数が指数的なので、<strong>「入力サイズに対する多項式」では測れない</strong>。理論は独自の計算量尺度を発達させた。</p>
+  <div class="grid2">
+    <div class="card"><h3>出力に見合う効率</h3><p>入力＋<strong>出力個数 N</strong> の関数で評価（output-sensitive, output-polynomial）。例 O(V+E+EN)。</p><p class="paper">Read–Tarjan 1975 / Lawler–Lenstra–Rinnooy Kan 1980</p></div>
+    <div class="card"><h3>遅延保証</h3><p>全解を待たず<strong>「次の1解までの最悪時間」</strong>を多項式に（polynomial delay）。逐次消費・部分列挙に有効。</p><p class="paper">Johnson–Yannakakis–Papadimitriou 1988 / Uno</p></div>
+    <div class="card"><h3>空間効率</h3><p>既生成解を保存せず、<strong>親ポインタ関数だけ</strong>で探索木を辿る＝出力量に依存しない一定メモリ。</p><p class="paper">Avis–Fukuda 1996 — reverse search</p></div>
+    <div class="card"><h3>償却で超線形回避</h3><p>出力順序を工夫し、<strong>総計算時間 &lt; 総出力サイズ</strong>／解あたり定数時間を狙う。</p><p class="paper">Uno — push-out amortization 2014</p></div>
+  </div>
+</section>
+
+<!-- 9. C 原文 -->
+<section>
+  <h2><span class="tag tag-theory">C</span> 理論家の言葉</h2>
+  <blockquote class="src">
+    "Enumeration has many interesting aspects, such as the computation time can be <strong>shorter than the total output size</strong>, by sophisticated ordering of output solutions."
+    <cite>Takeaki Uno — Push-out Amortization, 2014 (arXiv:1407.3857)</cite>
+  </blockquote>
+  <blockquote class="src">
+    "There is <strong>no polynomial-delay algorithm</strong> for generating all maximal independent sets in reverse lexicographic order, unless P = NP."
+    <cite>Johnson, Yannakakis, Papadimitriou — IPL 1988</cite>
+  </blockquote>
+  <blockquote class="src">
+    "[No algorithm generates] all the K maximal independent sets… in time polynomial in |E| and K, <strong>unless P = NP</strong>."
+    <cite>Lawler, Lenstra, Rinnooy Kan — SIAM J. Comput. 1980</cite>
+  </blockquote>
+  <p class="paper">→ <strong>出力順序が計算困難性を左右</strong>し、出力サイズを込みにしても難しい問題がある。列挙特有の困難性クラス（EnumP / DelayP / IncP）を画定する動機になる。</p>
+</section>
+
+<!-- 10. D 応用 -->
+<section>
+  <h2><span class="tag tag-applied">D</span> 実応用：「1解では足りない」現場</h2>
+  <div class="grid3">
+    <div class="card"><h3>バイオ</h3><blockquote class="src">"Identification of protein complexes… is crucial to understanding principles of cellular organisation and predict protein functions."<cite>Li et al. 2010</cite></blockquote></div>
+    <div class="card"><h3>SNS</h3><blockquote class="src">k-truss は "a natural observation of <strong>social cohesion</strong>" に動機づけられた密部分グラフ。<cite>Huang et al. — SIGMOD 2014</cite></blockquote></div>
+    <div class="card"><h3>データベース</h3><blockquote class="src">結果が巨大で実体化できない → 前処理後に<strong>定数遅延で1件ずつ</strong>。<cite>Berkholz &amp; Schweikardt 2020</cite></blockquote></div>
+  </div>
+  <div class="grid2" style="margin-top:.6em;">
+    <div class="card"><h3>化学情報学（逆問題）</h3><p class="paper">記述子→構造は非単射。MS/NMR からの構造決定・逆QSAR・化学空間探索には<strong>整合する全候補の列挙</strong>が本質。<span style="color:#8b95a1">Suzuki, Nagamochi, Akutsu 2014</span></p></div>
+    <div class="card"><h3>SAT/SMT（全解 = 答え）</h3><p class="paper">形式検証・モデル検査・テスト生成・確率推論では充足割当の<strong>全集合</strong>が必要（AllSAT/AllSMT）。<span style="color:#8b95a1">Spallitta, Sebastiani, Biere 2024</span></p></div>
+  </div>
+</section>
+
+<!-- 11. D 網羅性の正当化 -->
+<section>
+  <h2><span class="tag tag-applied">D</span> なぜ「網羅」でなければならないか</h2>
+  <blockquote class="src">
+    "…the tractability of the problem had remained unclear and methods by which to <strong>exhaustively search</strong> for such constellations had not been presented." 先行手法は "only provide <strong>heuristic solutions</strong>."
+    <cite>Colak et al. — Module Discovery by Exhaustive Search, PLoS ONE 2010</cite>
+  </blockquote>
+  <p>ヒューリスティックや最適化は<strong>準最適解しか返さず、重要な構造を取りこぼす</strong>。だから基準を満たすものを全列挙し、事後に対話的にフィルタする——これが応用側の「網羅列挙」の正当化。</p>
+  <p class="paper">生物学・ネットワーク科学系は「設計原理の理解」を、DB・SAT系は「全解が要件そのもの」を、化学は「逆問題の候補全列挙」を動機とする。共通前提は<strong>「1つの良い解より、条件を満たす集合の全体に意味がある」</strong>。</p>
+</section>
+
+<!-- 12. 横断まとめ -->
+<section data-background-gradient="linear-gradient(135deg, #1a1f2e 0%, #1f3d2d 100%)">
+  <h2>横断まとめ：動機のマップ</h2>
+  <table class="mini">
+    <tr><th>メタ類型</th><th>代表する声</th><th>領域</th></tr>
+    <tr><td class="badge-1">① 構造＝意味</td><td>密部分構造＝機能単位（複合体・コミュニティ・モチーフ）</td><td>A 後期 / B / D</td></tr>
+    <tr><td class="badge-1">② 全解が要件</td><td>検証・逆問題・網羅探索では「全て」が答え</td><td>D（化学・SAT・DB）</td></tr>
+    <tr><td class="badge-2">③ 出力に見合う効率</td><td>output-sensitive / delay / 空間 / 償却</td><td>C / A 中期 / B</td></tr>
+    <tr><td class="badge-2">④ 規模への挑戦</td><td>外部メモリ・並列・GPU化</td><td>A 後期 / B</td></tr>
+  </table>
+  <p style="margin-top:.5em;">古典（1973–2006）は<strong>③に偏り</strong>、動機を語らずアルゴリズムと計算量に徹した。2010年以降は巨大データを背景に<strong>①④が前面化</strong>し、応用分野（D）が<strong>②</strong>を明示的に言語化した。</p>
+</section>
+
+<!-- 13. 出典 -->
+<section>
+  <h2>出典（一次情報：アブストラクト）</h2>
+  <div class="grid2 refs">
+    <div>
+      <p><span class="tag tag-clique" style="font-size:.5em">A</span> クリーク列挙</p>
+      <p>Bron &amp; Kerbosch, CACM 1973 / Tomita et al., TCS 2006 / Makino &amp; Uno, SWAT 2004 / Eppstein et al., <a href="https://arxiv.org/abs/1006.5440">arXiv:1006.5440</a> / Cheng et al., ACM TODS 2011 / Das et al., <a href="https://arxiv.org/abs/2001.11433">arXiv:2001.11433</a> / Almasri et al., <a href="https://arxiv.org/abs/2212.01473">arXiv:2212.01473</a></p>
+      <p><span class="tag tag-pattern" style="font-size:.5em">B</span> パターンマイニング</p>
+      <p>Yan &amp; Han (gSpan), ICDM 2002 / Inokuchi et al. (AGM), PKDD 2000 / Kuramochi &amp; Karypis (FSG), ICDM 2001 / Milo et al., Science 2002 / Wernicke &amp; Rasche (FANMOD), Bioinformatics 2006 / Agrawal &amp; Srikant (Apriori), VLDB 1994 / Han, Pei, Yin (FP-growth), SIGMOD 2000</p>
+    </div>
+    <div>
+      <p><span class="tag tag-theory" style="font-size:.5em">C</span> 列挙理論</p>
+      <p>Avis &amp; Fukuda, DAM 1996 / Uno, <a href="https://arxiv.org/abs/1407.3857">arXiv:1407.3857</a> / Johnson, Yannakakis, Papadimitriou, IPL 1988 / Read &amp; Tarjan, Networks 1975 / Lawler, Lenstra, Rinnooy Kan, SIAM J. Comput. 1980 / Capelli &amp; Strozecki, <a href="https://arxiv.org/abs/1703.01928">arXiv:1703.01928</a></p>
+      <p><span class="tag tag-applied" style="font-size:.5em">D</span> 実応用</p>
+      <p>Li et al., IJDMB 2010 / Colak et al., PLoS ONE 2010 / Huang et al. (k-truss), SIGMOD 2014 / Huang et al., PVLDB 2016 / Berkholz &amp; Schweikardt, <a href="https://arxiv.org/abs/2003.01075">arXiv:2003.01075</a> / Suzuki, Nagamochi, Akutsu, J. Cheminform. 2014 / Spallitta, Sebastiani, Biere, <a href="https://arxiv.org/abs/2410.18707">arXiv:2410.18707</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- 14. 検証状況 -->
+<section>
+  <h2>検証状況（誠実な但し書き）</h2>
+  <ul>
+    <li><strong>原文引用を一次確認：</strong>Eppstein / Cheng / Das（A）、gSpan / Milo / FANMOD / FP-growth / AGM（B）、Uno / LLR / Capelli–Strozecki（C）、Li / Colak / Berkholz–Schweikardt / Suzuki / Spallitta（D）。</li>
+    <li><strong>抄録が403等で二次情報経由：</strong>Avis–Fukuda・JYP（C、DOI/dblp/CiteSeer で趣旨一致を確認）、FSG・Apriori（B、抄録要約経由）、k-truss・closest community（D、検索スニペット経由）。</li>
+    <li><strong>要確認：</strong>Read &amp; Tarjan は指定題名と実在題名が相違（実在は "Bounds on Backtrack Algorithms for Listing Cycles, Paths, and Spanning Trees", Networks 1975）。</li>
+    <li>Bron &amp; Kerbosch 1973 のアブストラクトには<strong>動機記述が無い</strong>ことを確認（未取得ではなく「記載なし」）。</li>
+  </ul>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.js"></script>
+<script>
+  Reveal.initialize({ hash: true, slideNumber: 'c/t', transition: 'slide', width: 1180, height: 740, margin: 0.055 });
+</script>
+</body>
+</html>
