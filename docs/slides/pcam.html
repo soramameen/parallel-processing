@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PCAM 並列アルゴリズム設計手法</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/theme/black.css" id="theme">
+  <style>
+    :root {
+      --p: #ff6b6b;  /* Partitioning */
+      --c: #4dabf7;  /* Communication */
+      --a: #ffd43b;  /* Agglomeration */
+      --m: #69db7c;  /* Mapping */
+    }
+    .reveal { font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+    .reveal h1, .reveal h2, .reveal h3 { font-weight: 700; letter-spacing: .02em; text-transform: none; }
+    .reveal h1 { font-size: 2.1em; }
+    .reveal h2 { font-size: 1.5em; margin-bottom: .5em; }
+    .reveal section { text-align: left; }
+    .reveal .center { text-align: center; }
+    .reveal p, .reveal li { font-size: .82em; line-height: 1.5; }
+    .reveal small { font-size: .5em; color: #9aa4b0; }
+    .tag { display: inline-block; padding: .12em .6em; border-radius: 999px; font-size: .55em; font-weight: 700; color: #10141a; vertical-align: middle; }
+    .tag-p { background: var(--p); } .tag-c { background: var(--c); }
+    .tag-a { background: var(--a); } .tag-m { background: var(--m); }
+    .pcam-flow { display: flex; justify-content: center; gap: .5em; margin: .8em 0; flex-wrap: wrap; }
+    .pcam-step { flex: 1; min-width: 120px; padding: .7em .4em; border-radius: 12px; text-align: center; color: #10141a; font-weight: 700; }
+    .pcam-step small { color: #10141a; opacity: .75; display: block; margin-top: .2em; font-weight: 500; }
+    .arrow { align-self: center; font-size: 1.4em; color: #6c757d; }
+    .abstract-concrete { display: flex; justify-content: space-between; font-size: .6em; color: #9aa4b0; margin: 0 .3em; }
+    blockquote.src { border-left: 3px solid var(--c); background: rgba(77,171,247,.08); padding: .5em .9em; font-size: .62em; font-style: italic; color: #c5ccd6; border-radius: 4px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2em; }
+    .card { background: rgba(255,255,255,.05); border-radius: 10px; padding: .7em 1em; }
+    .card h3 { font-size: .8em; margin: 0 0 .3em; }
+    .checklist { list-style: none; margin-left: 0; }
+    .checklist li { position: relative; padding-left: 1.4em; margin-bottom: .35em; }
+    .checklist li::before { content: "✓"; position: absolute; left: 0; color: var(--m); font-weight: 700; }
+    .num { display:inline-block; width:1.5em; height:1.5em; line-height:1.5em; text-align:center; border-radius:50%; font-size:.7em; font-weight:700; margin-right:.4em; color:#10141a; }
+    table.mini { font-size: .6em; border-collapse: collapse; width: 100%; }
+    table.mini th, table.mini td { border: 1px solid #3a4048; padding: .3em .5em; text-align: left; }
+    table.mini th { background: rgba(77,171,247,.15); }
+    .highlight { color: var(--a); font-weight: 700; }
+    .reveal ul { margin-left: 1em; }
+    .footnote { position: absolute; bottom: .3em; left: 1em; font-size: .38em; color: #6c757d; }
+  </style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- 1. Title -->
+<section data-background-gradient="linear-gradient(135deg, #1a1f2e 0%, #2d1f3d 100%)">
+  <h1 class="center">PCAM<br>並列アルゴリズム設計手法</h1>
+  <p class="center" style="font-size:.9em; color:#c5ccd6;">Partitioning → Communication → Agglomeration → Mapping</p>
+  <p class="center"><span class="tag tag-p">分割</span> <span class="tag tag-c">通信</span> <span class="tag tag-a">凝集</span> <span class="tag tag-m">割当</span></p>
+  <p class="center"><small>出典：Ian Foster <em>Designing and Building Parallel Programs</em>（Chapter 2）<br>NotebookLM の原典ソースに基づく一次情報</small></p>
+</section>
+
+<!-- 2. What is PCAM -->
+<section>
+  <h2><span class="tag tag-p">概要</span> PCAM とは何か</h2>
+  <ul>
+    <li>並列アルゴリズムを設計するための<strong>体系的・探索的なフレームワーク</strong>。単純なレシピではなく、設計の選択肢を最大化し代替案を評価する仕組み。</li>
+    <li>核となる哲学：<span class="highlight">「抽象的・機種非依存の課題」と「具体的・機種依存の課題」を意図的に切り離す</span>。</li>
+    <li>悪い設計選択からの<strong>後戻り（backtracking）コストを下げる</strong>ことを狙う。</li>
+  </ul>
+  <div class="abstract-concrete"><span>◀ 抽象・機種非依存（並列性を暴き出す）</span><span>具体・機種依存（性能を作り込む）▶</span></div>
+  <div class="pcam-flow">
+    <div class="pcam-step" style="background:var(--p)">P<small>並列性の発見</small></div>
+    <div class="pcam-step" style="background:var(--c)">C<small>並列性の発見</small></div>
+    <div class="pcam-step" style="background:var(--a)">A<small>効率・局所性</small></div>
+    <div class="pcam-step" style="background:var(--m)">M<small>効率・局所性</small></div>
+  </div>
+  <div class="footnote">前半2段階＝並列性とスケーラビリティを暴く / 後半2段階＝ハードウェア固有の性能課題に焦点</div>
+</section>
+
+<!-- 3. 4 stages overview -->
+<section>
+  <h2>4つのステージ</h2>
+  <div class="pcam-flow">
+    <div class="pcam-step" style="background:var(--p)">Partitioning<small>分割</small></div>
+    <div class="arrow">→</div>
+    <div class="pcam-step" style="background:var(--c)">Communication<small>通信</small></div>
+    <div class="arrow">→</div>
+    <div class="pcam-step" style="background:var(--a)">Agglomeration<small>凝集</small></div>
+    <div class="arrow">→</div>
+    <div class="pcam-step" style="background:var(--m)">Mapping<small>割当</small></div>
+  </div>
+  <ul>
+    <li><span class="tag tag-p">P</span> 計算とデータを<strong>細粒度の小タスク</strong>に分解。プロセッサ数などの制約は無視し、並列実行の機会を発見。</li>
+    <li><span class="tag tag-c">C</span> タスク間で必要な<strong>データ移動（情報フロー）</strong>を規定する。</li>
+    <li><span class="tag tag-a">A</span> 実際の計算機で効率よく動くよう、タスクを<strong>合体（粗粒度化）</strong>し局所性を高める。</li>
+    <li><span class="tag tag-m">M</span> 各タスクを<strong>物理プロセッサに割り当てる</strong>。利用率最大化と通信最小化を両立させる。</li>
+  </ul>
+</section>
+
+<!-- 4. Why this order -->
+<section>
+  <h2>なぜこの順序なのか</h2>
+  <ul>
+    <li><span class="tag tag-p">P が最初</span> 実際の制約を無視することで、並列実行の機会を<strong>最大限に暴き出す</strong>。早期にスケーラビリティを制限したり、代替戦略を先入観で捨てたりしない。</li>
+    <li><span class="tag tag-c">C が2番目</span> P のタスクは独立に実行できない。機種非依存の抽象アルゴリズムを、ここで<strong>完成させる</strong>。</li>
+    <li><span class="tag tag-a">A が3番目</span> 「抽象から具体への移行」。細粒度のままでは、タスク生成コストや大量の小メッセージで<strong>実機では非効率</strong>。理想構造が判明した後に合体させる。</li>
+    <li><span class="tag tag-m">M が最後</span> 最も機種依存性が高い。汎用の割当機構は存在せず複雑なトレードオフを要するため、最後に置き<strong>ハードウェア変更にアルゴリズムを書き直さず対応</strong>。</li>
+  </ul>
+</section>
+
+<!-- 5. Partitioning goal -->
+<section>
+  <h2><span class="tag tag-p">Partitioning</span> 分割の目的</h2>
+  <ul>
+    <li>計算とデータの両方を小タスクに分解し、<span class="highlight">並列実行の機会を暴き出す</span>。狙うのは <strong>fine-grained（細粒度）</strong>。</li>
+    <li>この段階ではプロセッサ数などの実際的制約を<strong>意図的に無視</strong>する。</li>
+    <li>データ・計算の<strong>冗長な複製を避け</strong>、後続ステージへの最大限の柔軟性を確保する。</li>
+  </ul>
+  <blockquote class="src">"programmers most commonly first focus on the data associated with a problem, then determine an appropriate partition for the data, and finally work out how to associate computation with data. This partitioning technique is termed <strong>domain decomposition</strong>."</blockquote>
+</section>
+
+<!-- 6. Domain vs Functional -->
+<section>
+  <h2><span class="tag tag-p">Partitioning</span> 2つの分割技法</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3 style="color:var(--p)">Domain decomposition<br>（データ中心分割）</h3>
+      <ul>
+        <li>まず<strong>データ</strong>を均等な小片に分割し、各片に計算を割り当てる。</li>
+        <li><strong>例：大気モデル</strong> 3次元グリッドの<strong>1格子点＝1タスク</strong>。各タスクが点の状態保持と更新を担う（Fig 2.2）。</li>
+        <li>3次元分割が最も柔軟で、設計初期に採用。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--c)">Functional decomposition<br>（機能中心分割）</h3>
+      <ul>
+        <li>まず<strong>計算</strong>を互いに素なタスクに分け、必要なデータを後から検討。</li>
+        <li><strong>例：探索木</strong>（VLSIフロアプラン）。再帰呼び出しごとにタスクを動的生成。</li>
+        <li><strong>例：気候モデル</strong>を大気・海洋・水文・地表のモジュールに分割。</li>
+      </ul>
+    </div>
+  </div>
+  <p style="font-size:.7em; margin-top:.6em;">両者は<strong>相補的</strong>。同一問題に両方適用し、複数の並列アルゴリズム案を得ることもできる。</p>
+</section>
+
+<!-- 7. Partitioning checklist -->
+<section>
+  <h2><span class="tag tag-p">Partitioning</span> 設計チェックリスト</h2>
+  <p style="font-size:.65em; color:#9aa4b0;">§2.2.3 — 原則すべてに「Yes」と答えられること。「No」があれば設計に欠陥の可能性。</p>
+  <ul class="checklist">
+    <li>タスク数はプロセッサ数より<strong>少なくとも1桁多い</strong>か？（後続調整の柔軟性）</li>
+    <li>冗長な計算・記憶領域を<strong>避けている</strong>か？（スケーラビリティ）</li>
+    <li>タスクの大きさは<strong>同程度</strong>か？（均等な負荷配分）</li>
+    <li>問題規模の増大に応じて<strong>タスク数がスケール</strong>するか？</li>
+    <li><strong>複数の代替分割案</strong>（domain / functional）を検討したか？</li>
+  </ul>
+</section>
+
+<!-- 8. Communication goal -->
+<section>
+  <h2><span class="tag tag-c">Communication</span> 通信の目的</h2>
+  <ul>
+    <li>分割で得たタスクは<strong>独立には実行できない</strong>。あるタスクの計算は別タスクのデータを必要とする。この<strong>情報フロー</strong>を規定するのが通信ステージ。</li>
+  </ul>
+  <div class="grid2">
+    <div class="card"><h3>① チャネル構造</h3><p style="font-size:.72em;">データを必要とするタスク（<strong>consumer</strong>）と持つタスク（<strong>producer</strong>）を結ぶ。</p></div>
+    <div class="card"><h3>② メッセージ</h3><p style="font-size:.72em;">そのチャネル上で<strong>送受信される内容</strong>を specify する。</p></div>
+  </div>
+  <blockquote class="src">"The definition of a channel involves an intellectual cost and the sending of a message involves a physical cost. Hence, we avoid introducing unnecessary channels and communication operations."</blockquote>
+</section>
+
+<!-- 9. Communication 4 axes -->
+<section>
+  <h2><span class="tag tag-c">Communication</span> 通信パターンの4分類軸</h2>
+  <table class="mini">
+    <tr><th>軸</th><th>意味</th><th>例</th></tr>
+    <tr><td><strong>Local / Global</strong></td><td>少数の隣接タスクとのみ / 多数のタスクと通信</td><td>Jacobi 差分法（local）/ 並列総和リダクション（global）</td></tr>
+    <tr><td><strong>Structured / Unstructured</strong></td><td>木・格子など規則的 / 任意グラフ</td><td>有限差分法（structured）/ 有限要素法（unstructured）</td></tr>
+    <tr><td><strong>Static / Dynamic</strong></td><td>通信相手が不変 / 実行時に変化</td><td>格子（static）/ メッシュ再分割を伴う有限要素（dynamic）</td></tr>
+    <tr><td><strong>Synchronous / Asynchronous</strong></td><td>協調して転送 / consumer が明示的に要求</td><td>—（async）分散共有データ構造</td></tr>
+  </table>
+  <p style="font-size:.62em; color:#9aa4b0; margin-top:.6em;">4つの軸は "loosely orthogonal"（緩やかに直交）。実際の通信構造はこれらの組み合わせで記述される。</p>
+</section>
+
+<!-- 10. Communication checklist -->
+<section>
+  <h2><span class="tag tag-c">Communication</span> 設計チェックリスト</h2>
+  <p style="font-size:.65em; color:#9aa4b0;">§2.3.5</p>
+  <ul class="checklist">
+    <li>すべてのタスクが<strong>ほぼ同数の通信操作</strong>を行うか？（不均衡は nonscalable の兆候）</li>
+    <li>各タスクは<strong>少数の隣接タスク</strong>とのみ通信するか？（局所性）</li>
+    <li>通信操作は<strong>並行して</strong>実行できるか？（divide-and-conquer で隠れた並行性を掘り起こす）</li>
+    <li>異なるタスクの<strong>計算</strong>は並行して進められるか？（例：Gauss-Seidel → red-black への切替）</li>
+  </ul>
+</section>
+
+<!-- 11. Agglomeration goal -->
+<section>
+  <h2><span class="tag tag-a">Agglomeration</span> 凝集の目的</h2>
+  <p style="font-size:.75em;">「抽象から具体へ」— P/C の決定を、実機で効率よく動くよう見直す。細粒度のままでは<strong>タスク生成コスト・小メッセージの起動コスト</strong>が過大。</p>
+  <p style="font-size:.72em; margin-bottom:.3em;"><strong>3つの（時に相反する）ゴール：</strong></p>
+  <div class="pcam-flow">
+    <div class="pcam-step" style="background:var(--a); min-width:150px;">① 通信コスト削減<small>粒度を上げる</small></div>
+    <div class="pcam-step" style="background:var(--a); min-width:150px;">② 柔軟性の維持<small>スケーラビリティ・移植性</small></div>
+    <div class="pcam-step" style="background:var(--a); min-width:150px;">③ SW工学コスト削減<small>逐次コード再利用</small></div>
+  </div>
+  <blockquote class="src">"reducing communication costs by increasing computation and communication granularity, retaining flexibility with respect to scalability and mapping decisions, and reducing software engineering costs."</blockquote>
+</section>
+
+<!-- 12. Agglomeration concepts -->
+<section>
+  <h2><span class="tag tag-a">Agglomeration</span> 主要概念</h2>
+  <div class="grid2">
+    <div class="card"><h3>Granularity（粒度）</h3><p style="font-size:.68em;">fine-grained な多数の小タスク → 結合して <strong>coarse-grained</strong> に。数を減らしサイズを大きくする。</p></div>
+    <div class="card"><h3>Surface-to-volume 効果</h3><p style="font-size:.68em;">通信量 ∝ <strong>表面積</strong>、計算量 ∝ <strong>体積</strong>。タスクを大きくすると通信/計算比が<strong>低下</strong>。高次元分割が有利。</p></div>
+    <div class="card"><h3>Replication（複製）</h3><p style="font-size:.68em;">原則は複製回避だが、<strong>通信を減らせるなら複製する価値</strong>あり。計算の複製（総和のbutterfly）/ データの複製（Fock行列）。</p></div>
+    <div class="card"><h3>移植性のトレードオフ</h3><p style="font-size:.68em;">"A program able to use only a fixed number of processors is a bad program." タスク数はパラメータ化し、<strong>プロセッサ数の1桁以上</strong>を保つ。</p></div>
+  </div>
+</section>
+
+<!-- 13. Surface-to-volume example -->
+<section>
+  <h2><span class="tag tag-a">Agglomeration</span> 数値例：表面対体積効果</h2>
+  <p style="font-size:.75em;">5点ステンシルの 8×8 格子（2次元差分法）</p>
+  <table class="mini" style="width:80%;">
+    <tr><th>設計</th><th>タスク数</th><th>通信回数</th><th>転送データ量</th></tr>
+    <tr><td>1格子点＝1タスク</td><td>64</td><td>256</td><td>256</td></tr>
+    <tr><td>4×4ブロック＝1タスク</td><td class="highlight">4</td><td class="highlight">16</td><td class="highlight">64</td></tr>
+  </table>
+  <p style="font-size:.72em; margin-top:.8em;">タスク内部の通信が消滅し、通信回数は <strong>256 → 16</strong>、転送量は <strong>256 → 64</strong> に激減。<br>体積（計算）は保ったまま、表面（通信）だけを大きく削減できる。</p>
+</section>
+
+<!-- 14. Agglomeration checklist -->
+<section>
+  <h2><span class="tag tag-a">Agglomeration</span> 設計チェックリスト</h2>
+  <p style="font-size:.6em; color:#9aa4b0;">§2.4.4（抜粋）</p>
+  <ul class="checklist" style="font-size:.92em;">
+    <li>局所性の向上で<strong>通信コストを削減</strong>できたか？</li>
+    <li>計算を複製したなら、<strong>利益がコストを上回る</strong>ことを問題規模・プロセッサ数の範囲で検証したか？</li>
+    <li>データを複製したなら、<strong>スケーラビリティを損なっていない</strong>か？</li>
+    <li>計算コストと通信コストが<strong>同程度のタスク</strong>が得られたか？</li>
+    <li>タスク数は<strong>問題規模に応じてスケール</strong>し続けるか？</li>
+    <li>十分な<strong>並行性</strong>が現在・将来の対象計算機に確保されているか？</li>
+    <li>負荷不均衡を招かず、<strong>タスク数をさらに減らせない</strong>か？</li>
+    <li>逐次プログラム並列化時、<strong>コード変更のコスト</strong>を考慮したか？</li>
+  </ul>
+</section>
+
+<!-- 15. Mapping goal -->
+<section>
+  <h2><span class="tag tag-m">Mapping</span> 割当の目的</h2>
+  <p style="font-size:.78em;">各タスクを<strong>物理プロセッサに割り当てる</strong>最終ステージ。2つの相反する目標を満たそうとする。</p>
+  <div class="grid2">
+    <div class="card"><h3 style="color:var(--m)">並列性の最大化</h3><p style="font-size:.72em;">同時実行可能なタスクを<strong>異なるプロセッサ</strong>に配置。</p></div>
+    <div class="card"><h3 style="color:var(--m)">通信コストの最小化</h3><p style="font-size:.72em;">頻繁に通信するタスクを<strong>同じプロセッサ</strong>に配置。</p></div>
+  </div>
+  <p style="font-size:.72em; margin-top:.6em;">一般解は <strong>NP完全</strong> → ヒューリスティック（負荷分散・タスクスケジューリング）に頼る。<br><small>Agglomeration で「1プロセッサ1タスク」まで統合済みなら、Mapping は A に吸収される。</small></p>
+</section>
+
+<!-- 16. Load balancing & scheduling -->
+<section>
+  <h2><span class="tag tag-m">Mapping</span> 負荷分散とスケジューリング</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3 style="color:var(--m)">負荷分散アルゴリズム</h3>
+      <p style="font-size:.64em;">ドメイン分解＋計算量が可変/非構造な場合。</p>
+      <ul style="font-size:.62em;">
+        <li>Recursive bisection（再帰二分割）</li>
+        <li>Local algorithms（近隣情報のみ、動的向き）</li>
+        <li>Probabilistic / Cyclic mappings</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--m)">タスクスケジューリング</h3>
+      <p style="font-size:.64em;">機能分解＋短命な多数タスクの場合。</p>
+      <ul style="font-size:.62em;">
+        <li>Manager/Worker</li>
+        <li>Hierarchical Manager/Worker</li>
+        <li>Decentralized（分散型）</li>
+      </ul>
+    </div>
+  </div>
+  <p style="font-size:.66em; margin-top:.5em;">マッピングが<strong>自明</strong>：タスク数固定・均等・構造化通信のとき。<strong>動的負荷分散</strong>：実行時に計算量・通信量が変化する最も複雑なとき。</p>
+</section>
+
+<!-- 17. Mapping checklist -->
+<section>
+  <h2><span class="tag tag-m">Mapping</span> 設計チェックリスト</h2>
+  <p style="font-size:.6em; color:#9aa4b0;">§2.5.3</p>
+  <ul class="checklist">
+    <li>SPMD設計なら、<strong>動的タスク生成</strong>に基づく案も検討したか？（逆も然り）</li>
+    <li>集中型負荷分散なら、<strong>マネージャがボトルネック</strong>にならないか？（本体でなくポインタを渡す）</li>
+    <li>動的負荷分散なら、<strong>異なる戦略の相対コスト</strong>を実装コスト込みで評価したか？</li>
+    <li>確率的・巡回手法なら、負荷分散に<strong>十分なタスク数</strong>があるか？（目安：プロセッサ数の10倍）</li>
+  </ul>
+  <p style="font-size:.6em; color:#9aa4b0; margin-top:.5em;">このチェックリストで PCAM は完結。ただしコード作成前に性能分析で設計を検証すべき。</p>
+</section>
+
+<!-- 18. Case studies -->
+<section>
+  <h2>ケーススタディ：PCAM の適用</h2>
+  <table class="mini">
+    <tr><th></th><th>大気モデル</th><th>VLSIフロアプラン</th><th>計算化学（Fock行列）</th></tr>
+    <tr><th>性質</th><td>規則的3次元格子・数値計算</td><td>不規則な探索木・記号処理</td><td>分散データへの非同期アクセス</td></tr>
+    <tr><th>P</th><td>domain（1格子点=1タスク）</td><td>functional（再帰呼出=タスク）</td><td>functional（計算/データタスク）</td></tr>
+    <tr><th>A</th><td>鉛直カラムに集約→逐次コード再利用</td><td>一定深さまで並列、以降は逐次DFS</td><td>全複製 or 部分複製</td></tr>
+    <tr><th>M</th><td>巡回マッピング（昼夜の負荷を均す）</td><td>Manager/Worker スケジューリング</td><td>データ=静的、計算=確率的/スケジューリング</td></tr>
+  </table>
+  <p style="font-size:.62em; margin-top:.6em;">大気モデル＝<strong>単純なドメイン分解</strong>の代表 / VLSI＝<strong>負荷分散が必要な不規則問題</strong>の代表 / 計算化学＝<strong>分散データ構造への非同期アクセス</strong>の代表。</p>
+</section>
+
+<!-- 19. Summary -->
+<section data-background-gradient="linear-gradient(135deg, #1a1f2e 0%, #1f3d2d 100%)">
+  <h2>まとめ</h2>
+  <ul>
+    <li><span class="tag tag-p">P</span><span class="tag tag-c">C</span> 前半は<strong>機種非依存</strong>で並列性とスケーラビリティを最大限に暴き出す。</li>
+    <li><span class="tag tag-a">A</span><span class="tag tag-m">M</span> 後半は<strong>機種依存</strong>で局所性・効率・負荷分散を作り込む。</li>
+    <li>各ステージに<strong>チェックリスト</strong>があり、次に進む前に設計の欠陥を検出する。</li>
+    <li>抽象→具体の分離により、<strong>ハードウェアが変わってもアルゴリズムを書き直さず</strong>調整できる。</li>
+  </ul>
+  <p class="center" style="margin-top:1em;"><span class="tag tag-p">分割</span> <span class="arrow" style="font-size:1em;">→</span> <span class="tag tag-c">通信</span> <span class="arrow" style="font-size:1em;">→</span> <span class="tag tag-a">凝集</span> <span class="arrow" style="font-size:1em;">→</span> <span class="tag tag-m">割当</span></p>
+</section>
+
+<!-- 20. Source -->
+<section>
+  <h2>出典</h2>
+  <ul>
+    <li>Ian Foster, <em>Designing and Building Parallel Programs</em>, Chapter 2「A Design Methodology」（§2.2 Partitioning / §2.3 Communication / §2.4 Agglomeration / §2.5 Mapping）</li>
+    <li>本スライドの内容・原文引用は、上記書籍テキストを登録した NotebookLM ノートブック「並列プログラムの設計と構築」の一次情報に基づく。</li>
+    <li>引用ブロック（斜体英文）は原典の逐語引用。</li>
+  </ul>
+  <p style="font-size:.6em; color:#9aa4b0; margin-top:1em;">※ NotebookLM の出力には原典のページ番号が含まれないため、厳密な参照が必要な場合は書籍現物での該当ページ確認を推奨。</p>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.js"></script>
+<script>
+  Reveal.initialize({ hash: true, slideNumber: 'c/t', transition: 'slide', width: 1120, height: 720, margin: 0.06 });
+</script>
+</body>
+</html>
