@@ -9,16 +9,22 @@ printed count can be eyeballed against that expected value.
 
 Usage::
 
-    python -m parallel_processing.benchmark [path-to-edge-list]
+    python -m parallel_processing.benchmark [path-to-edge-list] [--workers N]
+
+Passing ``--workers N`` switches enumeration to the naive root-split parallel
+counter (:mod:`parallel_processing.cliques_parallel`) with ``N`` processes,
+for comparing against the sequential run.
 """
 
 from __future__ import annotations
 
+import argparse
 import sys
 import time
 from pathlib import Path
 
 from parallel_processing.cliques import count_cliques
+from parallel_processing.cliques_parallel import count_cliques_parallel_root
 from parallel_processing.graph_io import edge_count, load_edge_list
 
 DEFAULT_DATASET = "data/ca-AstroPh.txt.gz"
@@ -33,8 +39,12 @@ EXPECTED_CLIQUES = {
 }
 
 
-def run(path: str | Path) -> None:
-    """Load ``path``, enumerate maximal cliques, and print timing and counts."""
+def run(path: str | Path, workers: int | None = None) -> None:
+    """Load ``path``, enumerate maximal cliques, and print timing and counts.
+
+    ``workers`` is ``None`` for the sequential counter, or a process count to
+    use the root-split parallel counter instead.
+    """
     path = Path(path)
     print(f"dataset: {path}")
 
@@ -46,7 +56,12 @@ def run(path: str | Path) -> None:
     print(f"load time: {load_elapsed:.3f} s")
 
     enum_start = time.perf_counter()
-    count, largest = count_cliques(graph)
+    if workers is None:
+        count, largest = count_cliques(graph)
+        print("mode: sequential")
+    else:
+        count, largest = count_cliques_parallel_root(graph, workers=workers)
+        print(f"mode: parallel (root-split, {workers} workers)")
     enum_elapsed = time.perf_counter() - enum_start
     print(f"maximal cliques: {count:,}")
     print(f"largest clique:  {largest}")
@@ -60,9 +75,16 @@ def run(path: str | Path) -> None:
 
 def main(argv: list[str] | None = None) -> None:
     """CLI entry point; ``argv`` defaults to ``sys.argv[1:]``."""
-    args = sys.argv[1:] if argv is None else argv
-    path = args[0] if args else DEFAULT_DATASET
-    run(path)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("path", nargs="?", default=DEFAULT_DATASET)
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=None,
+        help="use the root-split parallel counter with N worker processes",
+    )
+    args = parser.parse_args(sys.argv[1:] if argv is None else argv)
+    run(args.path, workers=args.workers)
 
 
 if __name__ == "__main__":
