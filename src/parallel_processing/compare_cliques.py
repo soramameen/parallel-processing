@@ -52,18 +52,37 @@ def _time(fn: Callable[[], tuple[int, int]]) -> tuple[float, int, int]:
     return time.perf_counter() - start, count, largest
 
 
-def run_one(name: str, graph: Graph, parallel_workers: int | None) -> None:
-    """Time each implementation on ``graph`` and print one aligned block."""
-    _, d = degeneracy_ordering(graph)
-    tomita_s, count, largest = _time(lambda: count_cliques(graph))
-    eppstein_s, e_count, _ = _time(lambda: count_eppstein_cliques(graph))
-    assert e_count == count, f"{name}: eppstein {e_count} != tomita {count}"
+def run_one(
+    name: str, graph: Graph, parallel_workers: int | None, repeat: int = 1
+) -> None:
+    """Time each implementation on ``graph`` and print one aligned block.
 
+    With ``repeat`` > 1 the two algorithms are timed alternately per round,
+    so slow machine phases hit both equally; the headline number is the
+    minimum, the standard noise-resistant statistic for benchmarks.
+    """
+    _, d = degeneracy_ordering(graph)
+    tomita_runs: list[float] = []
+    eppstein_runs: list[float] = []
+    for _ in range(repeat):
+        tomita_s, count, largest = _time(lambda: count_cliques(graph))
+        eppstein_s, e_count, _ = _time(lambda: count_eppstein_cliques(graph))
+        assert e_count == count, f"{name}: eppstein {e_count} != tomita {count}"
+        tomita_runs.append(tomita_s)
+        eppstein_runs.append(eppstein_s)
+    tomita_s, eppstein_s = min(tomita_runs), min(eppstein_runs)
+
+    reps = ""
+    if repeat > 1:
+        reps = (
+            f"  [tomita {'/'.join(f'{t:.2f}' for t in tomita_runs)}"
+            f" | eppstein {'/'.join(f'{t:.2f}' for t in eppstein_runs)}]"
+        )
     line = (
         f"{name:26} n={len(graph):>7,} m={edge_count(graph):>9,} d={d:>3} "
         f"cliques={count:>11,} q={largest:>3} "
         f"tomita={tomita_s:>8.3f}s eppstein={eppstein_s:>8.3f}s "
-        f"ratio={tomita_s / eppstein_s:>5.2f}x"
+        f"ratio={tomita_s / eppstein_s:>5.2f}x{reps}"
     )
     if parallel_workers is not None:
         par_s, p_count, _ = _time(
@@ -82,12 +101,20 @@ def main(argv: list[str] | None = None) -> None:
         i = args.index("--parallel")
         parallel_workers = int(args[i + 1])
         del args[i : i + 2]
+    repeat = 1
+    if "--repeat" in args:
+        i = args.index("--repeat")
+        repeat = int(args[i + 1])
+        del args[i : i + 2]
 
-    print("ratio = tomita / eppstein; >1 means eppstein is faster", flush=True)
+    print(
+        f"ratio = tomita / eppstein (min of {repeat}); >1 means eppstein is faster",
+        flush=True,
+    )
     for name, factory in SUITE:
-        run_one(name, factory(), parallel_workers)
+        run_one(name, factory(), parallel_workers, repeat)
     for path in args:
-        run_one(Path(path).name, load_edge_list(path), parallel_workers)
+        run_one(Path(path).name, load_edge_list(path), parallel_workers, repeat)
 
 
 if __name__ == "__main__":
