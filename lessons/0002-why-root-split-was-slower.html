@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 2 — なぜ root-split 並列版は逐次版より遅かったか</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/quiz.js" defer></script>
+</head>
+<body>
+
+<h1>なぜ root-split 並列版は理想通りにスケールしなかったか</h1>
+<p class="subtitle">Lesson 0002 · 前提: <a href="0001-root-split-parallel-cliques.html">Lesson 1 — root-split 並列 CLIQUES の仕組み</a></p>
+
+<p>
+<code>soc-sign-epinions</code>（131,828頂点・711,210辺）で 1/2/4/8 worker を実測したところ、
+こうなった。
+</p>
+
+<table style="width:100%; border-collapse:collapse; font-family:var(--sans); font-size:0.92rem; margin:1rem 0;">
+<tr style="border-bottom:1px solid var(--rule);"><th style="text-align:left; padding:0.4rem 0;">worker数</th><th style="text-align:right;">時間</th><th style="text-align:right;">対逐次</th></tr>
+<tr style="border-bottom:1px solid var(--rule);"><td style="padding:0.4rem 0;">1（逐次）</td><td style="text-align:right;">184.7 秒</td><td style="text-align:right;">1.00×</td></tr>
+<tr style="border-bottom:1px solid var(--rule);"><td style="padding:0.4rem 0;">2</td><td style="text-align:right; color:var(--accent); font-weight:600;">240.2 秒</td><td style="text-align:right; color:var(--accent); font-weight:600;">0.77×</td></tr>
+<tr style="border-bottom:1px solid var(--rule);"><td style="padding:0.4rem 0;">4</td><td style="text-align:right; color:var(--accent); font-weight:600;">236.3 秒</td><td style="text-align:right; color:var(--accent); font-weight:600;">0.78×</td></tr>
+<tr><td style="padding:0.4rem 0;">8</td><td style="text-align:right;">172.9 秒</td><td style="text-align:right;">1.07×</td></tr>
+</table>
+
+<p>
+件数（22,226,173）と最大クリークサイズ（94）はすべての条件で一致していたので、
+<strong>正しさは壊れていない</strong>。問題は純粋に速度で、しかも<strong>非単調</strong>：
+2・4 worker では逐次版より遅くなり、8 worker でようやく逐次版をわずかに上回る（それでも
+1.07倍——8倍の理想には遠く及ばない）。Lesson 1 で「アルゴリズムを変えずに枝を並列化するだけ」
+と説明した設計が、なぜここで裏目に出たのかを見る。
+</p>
+
+<h2>1. 分岐の数を数えてみる</h2>
+
+<p>
+<code>_root_branches(graph)</code> が作る枝の数、つまり <code>ext = cand - Γ(pivot)</code> の
+サイズを実測すると：
+</p>
+
+<pre><code>root branches (|ext|): 128,270   # 全131,828頂点のほぼ全て
+largest 5 branch cand sizes: [3558, 1841, 1819, 1381, 1289]
+smallest 5: [0, 0, 0, 0, 0]</code></pre>
+
+<p>
+疎なグラフ（平均次数 約10.8）では、pivot の隣接頂点はごく一部にしかならない。つまり
+<code>ext = cand - Γ(pivot)</code> は「ほぼ全頂点」になる。Lesson 1 で書いた
+「<code>ext</code> の各要素が1つの独立した枝になる」という性質は正しいが、
+<strong>疎グラフでは枝の数がそのまま頂点数に近づく</strong>という帰結を見落としていた。
+128,270個の枝のうち、サイズ0（何もしないで終わる）ものも多く含まれる——
+負荷はきわめて不均一である。
+</p>
+
+<h2>2. 「並列化できない直列区間」がある</h2>
+
+<p>
+さらに重要な発見がある。128,270個の枝それぞれの初期状態 <code>(subg, cand)</code> を
+<strong>逐次版と同じ順序で</strong>作る前処理（<code>_root_branches</code>）は、
+メインプロセスの中で1本のループとして実行される。これ自体を計測すると：
+</p>
+
+<pre><code>root-branch split: 70.16 秒</code></pre>
+
+<p>
+これは何 worker を使っても消えない。Lesson 1 の Q1 で確認した通り、
+<code>cand -= {p}</code> の順序を正しく再現しないと重複が生まれるため、
+この前処理を並列化しようとすると設計そのものを変える必要がある。
+</p>
+
+<blockquote>
+Gustafson (1988) の議論を借りると、これは古典的な Amdahl の法則の状況に近い：
+処理全体のうち並列化できない部分（ここでは70秒の逐次分割）が下限として残り、
+worker 数をいくら増やしてもそれ以下にはならない。
+</blockquote>
+
+<div class="quiz">
+  <div class="quiz-q">Q1. worker を2→8に増やしたとき、理論上の実行時間の下限に最も近いのはどれ？</div>
+  <label><input type="radio" name="q1" data-correct="false"> ほぼ0秒（worker を増やせば増やすほど下限も下がる）</label>
+  <label><input type="radio" name="q1" data-correct="true"> 70秒強（直列の root-branch split の時間）</label>
+  <label><input type="radio" name="q1" data-correct="false"> 184.7秒（逐次版と同じ）</label>
+  <div class="quiz-feedback"
+       data-correct-text="正解。直列区間はworker数に関係なく残るので、これが実行時間の理論的な床になる。"
+       data-wrong-text="direct区間（70秒）はworker数を増やしても短くならない、という点がポイント。"></div>
+</div>
+
+<h2>3. Amdahl 予測とのズレ、そして8 workerで急に速くなった謎</h2>
+
+<p>
+70秒の直列区間＋残り(184.7−70)秒を <code>p</code> 分割、という単純な Amdahl 予測
+<code>time(p) = 70 + 114.5/p</code> と実測を比べると：
+</p>
+
+<table style="width:100%; border-collapse:collapse; font-family:var(--sans); font-size:0.9rem; margin:1rem 0;">
+<tr style="border-bottom:1px solid var(--rule);"><th style="text-align:left; padding:0.3rem 0;">worker数</th><th style="text-align:right;">実測</th><th style="text-align:right;">Amdahl予測</th><th style="text-align:right;">説明できない超過</th></tr>
+<tr style="border-bottom:1px solid var(--rule);"><td style="padding:0.3rem 0;">2</td><td style="text-align:right;">240.2秒</td><td style="text-align:right;">127.4秒</td><td style="text-align:right; color:var(--accent);">+112.8秒</td></tr>
+<tr style="border-bottom:1px solid var(--rule);"><td style="padding:0.3rem 0;">4</td><td style="text-align:right;">236.3秒</td><td style="text-align:right;">98.8秒</td><td style="text-align:right; color:var(--accent);">+137.5秒</td></tr>
+<tr><td style="padding:0.3rem 0;">8</td><td style="text-align:right;">172.9秒</td><td style="text-align:right;">84.5秒</td><td style="text-align:right; color:var(--accent);">+88.4秒</td></tr>
+</table>
+
+<p>
+どの worker 数でも実測は予測よりかなり悪い。しかも超過分は
+<strong>worker数に比例して増減していない</strong>（2→4で減るどころか増え、8で急に縮む）。
+「worker起動コストが worker数に比例して重くなる」という単純な説明だとこの形にならない。
+より筋が通るのは次の仮説（未検証・次の測定候補）：
+</p>
+
+<ul>
+<li><strong>タスク送信オーバーヘッドは worker数に依存しない固定コスト</strong>：
+  <code>ProcessPoolExecutor.map</code> は既定で <code>chunksize=1</code>。128,270個のタスクを
+  <strong>メインプロセスが1個ずつ</strong> pickle してキューに積む処理は、worker が何台あっても
+  メインプロセス側の作業量は変わらない。計算側（ワーカーの実処理）が worker 増加で速く終わる
+  ほど、この一定コストの割合が相対的に大きく見える——これは 2・4 worker で遅く、8 worker で
+  急に改善した非単調な形と整合する。</li>
+<li><strong>ワーカー起動コスト</strong>：macOS の既定 start method は <code>spawn</code>。
+  ワーカーごとにグラフ全体（131,828頂点）を <code>initializer</code> 経由で再構築する必要があり、
+  worker数だけこのコストが重複する（ただしこちらは worker数に比例するはずで、上の非単調な
+  パターンを単独では説明しにくい）。</li>
+</ul>
+
+<div class="margin-note">
+これは <code>docs/plans/cliques-parallelization-ideas.md</code> が候補2の限界として最初から
+指摘していた内容（「枝の計算量の偏り、spawn での graph 複製が主な問題」）の実測による裏付けに
+なっている。設計段階の懸念が、実測で具体的な数字（70秒・128,270枝）として確認できた。
+</div>
+
+<h2>4. この結果の使いどころ</h2>
+
+<p>
+これは失敗ではなく、卒論として価値のある「うまくいかない例」である。
+<a href="../MISSION.md">MISSION.md</a> の該当項目：「なぜ理想的な線形スピードアップに
+ならないのか」を考察できる、という達成目標にそのまま対応する。次に検証すべき仮説は：
+</p>
+<ul>
+<li><code>chunksize</code> を大きくする、または枝を事前にバッチ化してタスク数自体を減らす
+  （設計docの候補1が想定している方向）。</li>
+<li>枝サイズでソートしてから重い枝を先に投入する（負荷の偏りへの対処）。</li>
+</ul>
+
+<div class="source">
+<strong>一次資料</strong>
+<a href="https://doi.org/10.1145/42411.42415">Gustafson (1988), "Reevaluating Amdahl's Law",
+CACM 31(5)</a> — 固定サイズ問題での並列化限界（Amdahl）と、規模を広げたときの見え方
+（Gustafson）の対比。「なぜ直列区間がボトルネックになるか」を理論的に位置づけるときの定番引用。
+詳しくは <a href="../RESOURCES.md">RESOURCES.md</a> を参照。
+</div>
+
+<div class="ask-teacher">
+「70秒の前処理はどうやったら並列化できるか」「chunksize を変えると本当に速くなるか」は
+どちらも次の実験で確かめられる問いです。試してみたい方向があれば、エージェントに相談してから
+着手してください。
+</div>
+
+<div class="nav">
+Mission: <a href="../MISSION.md">MISSION.md</a> ·
+Resources: <a href="../RESOURCES.md">RESOURCES.md</a> ·
+Learning record: <a href="../learning-records/0001-root-split-slower-than-sequential.md">0001</a> ·
+前のレッスン: <a href="0001-root-split-parallel-cliques.html">Lesson 1</a>
+</div>
+
+</body>
+</html>
