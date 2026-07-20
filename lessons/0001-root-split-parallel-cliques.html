@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 1 — root-split 並列 CLIQUES の仕組み</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/quiz.js" defer></script>
+</head>
+<body>
+
+<h1>root-split 並列 CLIQUES の仕組み</h1>
+<p class="subtitle">Lesson 0001 · Mission: <a href="../MISSION.md">Bron–Kerbosch / Tomita CLIQUES の並列化</a></p>
+
+<p>
+このリポジトリには現在、<strong>逐次版</strong>の Tomita CLIQUES
+（<code>src/parallel_processing/cliques.py</code>）と、それを並列化した
+<strong>root-split 版</strong>（<code>src/parallel_processing/cliques_parallel.py</code>）の
+2つがある。このレッスンでは、後者が「何を」「なぜその方法で」並列化しているかを説明する。
+</p>
+
+<h2>1. 出発点：逐次版の探索木</h2>
+
+<p>
+逐次版の中心は <code>expand(subg, cand)</code> という再帰関数だった。
+</p>
+
+<pre><code>def expand(subg: set[int], cand: set[int]) -> None:
+    if not subg:
+        result.append(frozenset(q))   # Q が極大クリーク
+        return
+    pivot = max(subg, key=lambda u: len(cand &amp; graph.get(u, set())))
+    ext = cand - graph.get(pivot, set())
+    for p in list(ext):
+        neighbours = graph.get(p, set())
+        q.append(p)
+        expand(subg &amp; neighbours, cand &amp; neighbours)
+        q.pop()
+        cand = cand - {p}   # ← p を処理し終えたら候補から除く</code></pre>
+
+<p>
+最初の呼び出しは <code>expand(V, V)</code>（<code>V</code> は全頂点集合）。この最初の呼び出しの中で
+計算される <code>ext</code>（= <code>CAND \ Γ(pivot)</code>）の各要素 <code>p</code> が、探索木の
+<strong>「最初の分岐」</strong>にあたる。
+</p>
+
+<div class="margin-note">
+<code>ext</code> の中身は「pivot の隣接ではない候補頂点」。pivot 自身も pivot の隣接には含まれない
+ので、<code>ext</code> は空にならない（自己ループなしのグラフでは pivot ∈ ext）。
+</div>
+
+<h2>2. なぜ分岐ごとに独立して並列化できるのか</h2>
+
+<p>
+<code>for p in ext</code> のループの中身をよく見ると、各 <code>p</code> は<strong>自分の枝の中だけ</strong>
+で完結した再帰 <code>expand(subg &amp; N(p), cand &amp; N(p))</code> を行い、見つかったクリークはすべて
+<code>p</code> を含む。つまり「頂点 <code>p</code> を含む極大クリーク」はすべてこの1つの枝の中に
+閉じている。枝 <code>p</code> と枝 <code>p'</code>（<code>p ≠ p'</code>）が同じクリークを重複して
+見つけることはない——これが並列化の土台になる性質である。
+</p>
+
+<p>
+だから「<code>ext</code> の各要素を独立プロセスに配って、それぞれの枝を並列に探索し、最後に
+件数を集計するだけでよい」というのが root-split の発想である。
+アルゴリズムの中身（pivot 選択やビットセット化など）は一切変えていない、という点が重要。
+<code>docs/plans/cliques-parallelization-ideas.md</code> の候補2にあたる、いちばん素朴な並列化。
+</p>
+
+<h2>3. 落とし穴：<code>cand -= {p}</code> の順序を再現する必要がある</h2>
+
+<p>
+逐次版のループをもう一度見ると、兄弟 <code>p</code> を処理し終えるたびに
+<code>cand = cand - {p}</code> をしている。つまり2番目の兄弟が使う <code>cand</code> は、
+1番目の兄弟をすでに除いたもの。もしすべての枝に同じ <code>cand</code>（＝最初の <code>ext</code> と
+同じ集合）を渡してしまうと、同じ極大クリークが複数の枝で重複してカウントされる。
+</p>
+
+<p>
+そのため <code>cliques_parallel.py</code> の <code>_root_branches</code> は、
+プロセスに配る<strong>前に</strong>、メインプロセス側で逐次版と同じ順序で
+<code>cand</code> を1つずつ削りながら、各枝の初期状態 <code>(subg, cand)</code> をあらかじめ
+計算しておく。
+</p>
+
+<pre><code>def _root_branches(graph: Graph) -> list[tuple[set[int], set[int]]]:
+    subg = set(graph)
+    cand = set(graph)
+    pivot = max(subg, key=lambda u: len(cand &amp; graph.get(u, set())))
+    ext = cand - graph.get(pivot, set())
+    branches = []
+    for p in ext:
+        neighbours = graph.get(p, set())
+        branches.append((subg &amp; neighbours, cand &amp; neighbours))
+        cand = cand - {p}   # 逐次版と同じ順序で削る
+    return branches</code></pre>
+
+<div class="quiz">
+  <div class="quiz-q">Q1. もし <code>_root_branches</code> が <code>cand -= {p}</code> を省略し、
+  全ての枝に同じ <code>cand</code>（最初の <code>ext</code> 全体）を渡したら何が起きる？</div>
+  <label><input type="radio" name="q1" data-correct="false"> 一部の極大クリークが欠落する</label>
+  <label><input type="radio" name="q1" data-correct="true"> 一部の極大クリークが重複してカウントされる</label>
+  <label><input type="radio" name="q1" data-correct="false"> 実行時間が変わらず結果も変わらない</label>
+  <div class="quiz-feedback"
+       data-correct-text="正解。兄弟間で候補が被ったままだと、同じクリークが複数の枝から見つかる。"
+       data-wrong-text="逆。候補を削らないと候補が『増えすぎる』方向に間違う＝重複が起きる。"></div>
+</div>
+
+<h2>4. なぜ共有カウンタを使わないのか</h2>
+
+<p>
+<code>soc-sign-epinions</code>（SNAP データセット）では極大クリークが約2,226万個見つかる。
+もし全ワーカーが1つの共有カウンタ（例えば <code>multiprocessing.Value</code>）をロックしながら
+インクリメントしていたら、2,226万回のロック争奪がボトルネックになり、並列化の効果が消える。
+</p>
+
+<p>
+そこで各ワーカー（<code>_branch_task</code>）は自分の枝の中で見つけた件数と最大クリークサイズを
+<code>(local_count, local_largest)</code> として<strong>ローカルに集計</strong>し、
+親プロセスが <code>ProcessPoolExecutor.map</code> の結果を <code>sum</code>/<code>max</code> で
+まとめる。通信はワーカーごとに1回だけ。
+</p>
+
+<pre><code>with ProcessPoolExecutor(
+    max_workers=workers, initializer=_init_worker, initargs=(graph,)
+) as executor:
+    results = list(executor.map(_branch_task, subgs, cands))
+
+count = sum(c for c, _ in results)
+largest = max((size for _, size in results), default=0)</code></pre>
+
+<div class="margin-note">
+<code>initializer=_init_worker</code> でグラフを各ワーカープロセスの起動時に1回だけ渡している。
+こうしないと、タスクを送るたびにグラフ全体を pickle して送ることになり、通信コストが跳ね上がる。
+</div>
+
+<div class="quiz">
+  <div class="quiz-q">Q2. 共有カウンタを避けている理由は？</div>
+  <label><input type="radio" name="q2" data-correct="false"> Python の <code>multiprocessing.Value</code> にはバグがあるから</label>
+  <label><input type="radio" name="q2" data-correct="true"> 約2,226万件の更新でロック争奪がボトルネックになるから</label>
+  <label><input type="radio" name="q2" data-correct="false"> グラフが大きすぎてメモリに乗らないから</label>
+  <div class="quiz-feedback"
+       data-correct-text="正解。ローカル集計＋最後に1回だけ集約、という設計はこの規模で必須になる。"
+       data-wrong-text="バグでもメモリ不足でもなく、更新頻度そのものがボトルネックになる。"></div>
+</div>
+
+<h2>5. 現状の位置づけ（次のレッスンへの布石）</h2>
+
+<p>
+今のところ確認できているのは「正しさ」だけである：小規模グラフとランダムグラフで
+<code>count_cliques_parallel_root</code> の結果が逐次版と一致することを
+<code>tests/test_cliques_parallel.py</code> で検証済み。<code>soc-sign-epinions</code> での
+逐次ベースラインは <strong>184.7秒</strong>、極大クリーク数 <strong>22,226,173</strong>
+（論文 Table 1 の期待値と一致）。1/2/4/8 ワーカーでの実測スピードアップは計測中で、
+次のレッスンで扱う。
+</p>
+
+<p>
+先取りして考えておくとよい問い：<code>ext</code> の各枝は本当に同じくらいの計算量か？
+違うとしたら、静的に「枝を1個ずつプロセスに渡す」やり方はどう困るか。この問いは
+<code>docs/plans/cliques-parallelization-ideas.md</code> の負荷偏り実測（最重1タスクが全体の
+0.8%）とつながっている。
+</p>
+
+<div class="source">
+<strong>一次資料</strong>
+<a href="https://doi.org/10.1016/j.tcs.2006.06.015">Tomita, Tanaka, Takahashi (2006), "The worst-case
+time complexity for generating all maximal cliques and computational experiments", TCS 363(1)</a>
+— pivot 選択の原論文。まずここを読むと、なぜ <code>ext = cand - Γ(pivot)</code> という削り方が
+最悪計算量を最適にするのかがわかる。詳しくは <a href="../RESOURCES.md">RESOURCES.md</a> も参照。
+</div>
+
+<div class="ask-teacher">
+わからないところがあれば、遠慮なくエージェント（先生役）に質問してください。
+「なぜ <code>ext</code> は空にならないと言えるのか」「<code>subg &amp; neighbours</code> がなぜ
+必要か（<code>cand</code> だけでは足りない理由）」など、コードの一行一行について聞いて構いません。
+</div>
+
+<div class="nav">
+Mission: <a href="../MISSION.md">MISSION.md</a> ·
+Resources: <a href="../RESOURCES.md">RESOURCES.md</a> ·
+Source: <a href="../src/parallel_processing/cliques_parallel.py">cliques_parallel.py</a>
+</div>
+
+</body>
+</html>
