@@ -32,3 +32,9 @@ Thumbs.db
 
 # Datasets (downloaded, not committed)
 data/
+
+# Local tool state (not shared)
+.direnv/
+.claude/
+
+# LaTeX build artifacts are ignored via thesis/.gitignore
