@@ -24,7 +24,10 @@ Usage::
 
 from __future__ import annotations
 
+import os
 import sys
+import time
+from dataclasses import dataclass
 from multiprocessing import Pool
 
 from parallel_processing.eppstein import Graph, degeneracy_ordering
@@ -78,6 +81,75 @@ def _count_batch(batch: range) -> tuple[int, int]:
         count += sub_count
         largest = max(largest, sub_largest)
     return count, largest
+
+
+def _noop(_: int) -> None:
+    return None
+
+
+def _count_batch_timed(batch: range) -> tuple[int, float, int, int]:
+    """Like _count_batch, but also report (pid, elapsed) for busy accounting."""
+    start = time.perf_counter()
+    count, largest = _count_batch(batch)
+    return os.getpid(), time.perf_counter() - start, count, largest
+
+
+@dataclass
+class PhaseProfile:
+    """Wall-clock seconds of each phase of one parallel run."""
+
+    ordering_s: float
+    startup_s: float
+    compute_s: float
+    cliques: int
+    largest: int
+    worker_busy: dict[int, float]
+    batches: int
+
+
+def profile_eppstein_parallel(
+    graph: Graph, workers: int, batch_size: int = BATCH_SIZE
+) -> PhaseProfile:
+    """Run the parallel counter with per-phase timing; same result as
+    :func:`count_eppstein_cliques_parallel`."""
+    start = time.perf_counter()
+    ordering, _ = degeneracy_ordering(graph)
+    ordering_s = time.perf_counter() - start
+
+    batches = [
+        range(i, min(i + batch_size, len(ordering)))
+        for i in range(0, len(ordering), batch_size)
+    ]
+
+    start = time.perf_counter()
+    with Pool(workers, initializer=_init_worker, initargs=(graph, ordering)) as pool:
+        # Pool() returns before the children finish unpickling the graph, so a
+        # chunksize-1 noop sweep is the barrier; it only approximates full
+        # startup because imap may still reach a worker that skipped the sweep.
+        pool.map(_noop, range(workers * 4), chunksize=1)
+        startup_s = time.perf_counter() - start
+
+        start = time.perf_counter()
+        count = 0
+        largest = 0
+        worker_busy: dict[int, float] = {}
+        for pid, elapsed, sub_count, sub_largest in pool.imap_unordered(
+            _count_batch_timed, batches
+        ):
+            count += sub_count
+            largest = max(largest, sub_largest)
+            worker_busy[pid] = worker_busy.get(pid, 0.0) + elapsed
+        compute_s = time.perf_counter() - start
+
+    return PhaseProfile(
+        ordering_s=ordering_s,
+        startup_s=startup_s,
+        compute_s=compute_s,
+        cliques=count,
+        largest=largest,
+        worker_busy=worker_busy,
+        batches=len(batches),
+    )
 
 
 def count_eppstein_cliques_parallel(
