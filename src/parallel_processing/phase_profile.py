@@ -9,7 +9,7 @@ Usage::
 
     python -m parallel_processing.phase_profile \
         [--workers 1,2,4,8] [--batch 64] [--repeat 3] \
-        [--strategy block|reversed|interleave] [--skip-suite] [edge-list ...]
+        [--strategy block|reversed|interleave|fork|shm] [--skip-suite] [edge-list ...]
 
 Every run is appended to ``artifacts/phase-profile.csv``; stdout shows the
 minimum-total run per (graph, workers), following the repeat-and-take-min
@@ -25,8 +25,10 @@ from pathlib import Path
 
 from parallel_processing import (
     eppstein_parallel,
+    eppstein_parallel_fork,
     eppstein_parallel_interleave,
     eppstein_parallel_reversed,
+    eppstein_parallel_shm,
 )
 from parallel_processing.compare_cliques import SUITE
 from parallel_processing.eppstein_parallel import PhaseProfile
@@ -41,6 +43,8 @@ STRATEGIES = {
     "block": eppstein_parallel.profile_eppstein_parallel,
     "reversed": eppstein_parallel_reversed.profile_eppstein_parallel,
     "interleave": eppstein_parallel_interleave.profile_eppstein_parallel,
+    "fork": eppstein_parallel_fork.profile_eppstein_parallel,
+    "shm": eppstein_parallel_shm.profile_eppstein_parallel,
 }
 
 CSV_FIELDS = [
