@@ -8,7 +8,8 @@ the sequential preparation actually costs. Runs the synthetic suite of
 Usage::
 
     python -m parallel_processing.phase_profile \
-        [--workers 1,2,4,8] [--batch 64] [--repeat 3] [edge-list ...]
+        [--workers 1,2,4,8] [--batch 64] [--repeat 3] \
+        [--strategy block|reversed|interleave] [--skip-suite] [edge-list ...]
 
 Every run is appended to ``artifacts/phase-profile.csv``; stdout shows the
 minimum-total run per (graph, workers), following the repeat-and-take-min
@@ -22,14 +23,25 @@ import sys
 import time
 from pathlib import Path
 
-from parallel_processing.compare_cliques import SUITE
-from parallel_processing.eppstein_parallel import (
-    PhaseProfile,
-    profile_eppstein_parallel,
+from parallel_processing import (
+    eppstein_parallel,
+    eppstein_parallel_interleave,
+    eppstein_parallel_reversed,
 )
+from parallel_processing.compare_cliques import SUITE
+from parallel_processing.eppstein_parallel import PhaseProfile
 from parallel_processing.graph_io import edge_count, load_edge_list
 
 CSV_PATH = Path("artifacts/phase-profile.csv")
+
+# Each batch-distribution strategy lives in its own module (thin copies of
+# eppstein_parallel) so the variants stay self-contained; here they are only
+# looked up by name.
+STRATEGIES = {
+    "block": eppstein_parallel.profile_eppstein_parallel,
+    "reversed": eppstein_parallel_reversed.profile_eppstein_parallel,
+    "interleave": eppstein_parallel_interleave.profile_eppstein_parallel,
+}
 
 CSV_FIELDS = [
     "graph",
@@ -37,6 +49,7 @@ CSV_FIELDS = [
     "m",
     "workers",
     "batch",
+    "strategy",
     "run",
     "load_s",
     "ordering_s",
@@ -80,16 +93,18 @@ def run_graph(
     load_s: float,
     workers_list: list[int],
     batch: int,
+    strategy: str,
     repeat: int,
     writer: csv.DictWriter,
     csv_file,
 ) -> None:
+    profile_fn = STRATEGIES[strategy]
     n, m = len(graph), edge_count(graph)
     expected: int | None = None
     for workers in workers_list:
         runs: list[PhaseProfile] = []
         for run_idx in range(repeat):
-            p = profile_eppstein_parallel(graph, workers, batch)
+            p = profile_fn(graph, workers, batch)
             if expected is None:
                 expected = p.cliques
             assert p.cliques == expected, (
@@ -104,6 +119,7 @@ def run_graph(
                     "m": m,
                     "workers": workers,
                     "batch": batch,
+                    "strategy": strategy,
                     "run": run_idx,
                     "load_s": f"{load_s:.4f}",
                     "ordering_s": f"{p.ordering_s:.4f}",
@@ -138,6 +154,17 @@ def main(argv: list[str] | None = None) -> None:
         i = args.index("--repeat")
         repeat = int(args[i + 1])
         del args[i : i + 2]
+    strategy = "block"
+    if "--strategy" in args:
+        i = args.index("--strategy")
+        strategy = args[i + 1]
+        if strategy not in STRATEGIES:
+            sys.exit(f"unknown strategy {strategy!r}; choose from {sorted(STRATEGIES)}")
+        del args[i : i + 2]
+    skip_suite = False
+    if "--skip-suite" in args:
+        skip_suite = True
+        args.remove("--skip-suite")
 
     CSV_PATH.parent.mkdir(exist_ok=True)
     new_file = not CSV_PATH.exists()
@@ -146,17 +173,26 @@ def main(argv: list[str] | None = None) -> None:
         if new_file:
             writer.writeheader()
         print(
-            f"phase profile: batch={batch} repeat={repeat} "
+            f"phase profile: batch={batch} strategy={strategy} repeat={repeat} "
             f"(stdout shows min-total run; all runs in {CSV_PATH})",
             flush=True,
         )
-        for name, factory in SUITE:
-            start = time.perf_counter()
-            graph = factory()
-            load_s = time.perf_counter() - start
-            run_graph(
-                name, graph, load_s, workers_list, batch, repeat, writer, csv_file
-            )
+        if not skip_suite:
+            for name, factory in SUITE:
+                start = time.perf_counter()
+                graph = factory()
+                load_s = time.perf_counter() - start
+                run_graph(
+                    name,
+                    graph,
+                    load_s,
+                    workers_list,
+                    batch,
+                    strategy,
+                    repeat,
+                    writer,
+                    csv_file,
+                )
         for path in args:
             start = time.perf_counter()
             graph = load_edge_list(path)
@@ -167,6 +203,7 @@ def main(argv: list[str] | None = None) -> None:
                 load_s,
                 workers_list,
                 batch,
+                strategy,
                 repeat,
                 writer,
                 csv_file,
