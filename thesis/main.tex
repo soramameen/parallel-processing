@@ -1,0 +1,43 @@
+% 卒業論文ドラフト
+% ビルド: latexmk -lualatex main.tex
+% 研究室のテンプレートが判明したら documentclass とタイトル部を差し替える
+\documentclass[report, jafontscale=1.0]{jlreq}
+
+\usepackage{luatexja-fontspec}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\todo}[1]{\par\noindent\textbf{[TODO: #1]}\par}
+
+\title{極大クリーク列挙の並列化\\
+  \large Eppstein アルゴリズムの最外層並列化と性能限界の実測分析（仮題）}
+\author{中島 蒼}
+\date{2027年2月（提出予定）}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+% 概要は最後に書く。本文の各章が固まってから、1段落×4（背景・手法・結果・結論）で構成する。
+\todo{概要（最後に書く）}
+\end{abstract}
+
+\tableofcontents
+
+\input{chapters/01-introduction}
+\input{chapters/02-preliminaries}
+\input{chapters/03-related-work}
+\input{chapters/04-implementation}
+\input{chapters/05-experiments}
+\input{chapters/06-conclusion}
+
+% 文献は全て英語のため plain を使う。研究室指定があれば jplain 等に差し替える
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}
