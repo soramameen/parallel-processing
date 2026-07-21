@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>レッスン0001 — 縮退数 d を手で剥がして理解する</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+  .stat { display: flex; gap: 1.5rem; font-variant-numeric: tabular-nums; font-size: .9rem; margin: .8rem 0; flex-wrap: wrap; }
+  .stat b { font-size: 1.3rem; }
+  .order-strip { display: flex; gap: .5rem; margin: .8rem 0; min-height: 3rem; flex-wrap: wrap; }
+  .order-chip { width: 2.6rem; height: 2.6rem; border-radius: 50%; display: grid; place-items: center;
+    background: var(--card); border: 2px solid var(--line); font-weight: 600; cursor: default; }
+  .order-chip .deg { font-size: .6rem; color: var(--ink-soft); font-weight: 400; }
+  .order-chip.max { border-color: var(--warm); }
+  .order-chip.clickable { cursor: pointer; }
+  .order-chip.selected { border-color: var(--accent); background: var(--accent); color: var(--bg); }
+  .msg { min-height: 2.2rem; font-size: .9rem; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<main>
+<h1>縮退数 d を手で剥がして理解する</h1>
+<p class="lede">レッスン 0001 ・ 所要 5 分 ・ ミッション: Bron–Kerbosch 並列化の卒業研究</p>
+
+<p>つまずいた文はこれでした。</p>
+<div class="card"><p>「取り除く瞬間の次数」の最大値が縮退数 d です。言い換えると、各頂点は、自分より後ろに並ぶ隣人を高々 d 個しか持たない。</p></div>
+<p>この文は実は <strong>3つの別々の主張</strong> を1文に詰め込んでいます。1つずつばらします。</p>
+<ol>
+  <li><strong>手順</strong>: 「いちばん次数が小さい頂点を取り除く」を繰り返す（剥がす）</li>
+  <li><strong>d の定義</strong>: 剥がすたびに「その瞬間の次数」をメモし、その<strong>最大値</strong>を d と呼ぶ</li>
+  <li><strong>言い換え</strong>: 剥がした順に並べると、どの頂点も「後ろの隣人」は d 個以下になる</li>
+</ol>
+<p>③が魔法に見えるのがつまずきの原因です。実は③は①②の<strong>単なる記録の読み直し</strong>です。下で実際に剥がして確かめましょう。</p>
+
+<h2>① + ② 実際に剥がす</h2>
+<p>ボタンを押すたび、<strong>そのとき残っている中で次数最小の頂点</strong>が剥がれます。剥がれる瞬間の次数（＝まだ残っている隣人の数）が記録されます。</p>
+
+<figure>
+<svg id="peelSvg" viewBox="0 0 420 300" role="img" aria-label="剥がし操作のグラフ"></svg>
+</figure>
+<div style="display:flex; gap:.8rem;">
+  <button id="peelBtn">次数最小の頂点を剥がす</button>
+  <button id="resetBtn" class="ghost">最初から</button>
+</div>
+<div class="stat">
+  <span>剥がした順: </span>
+</div>
+<div class="order-strip" id="orderStrip"></div>
+<div class="stat"><span>剥がす瞬間の次数の最大値 = <b id="dVal" style="color:var(--warm)">?</b></span></div>
+<p class="msg" id="peelMsg">まだ誰も剥がしていません。全員の次数を見て、いちばん小さい頂点から。</p>
+
+<h2>③ は「メモの読み直し」にすぎない</h2>
+<p>ここが核心です。<strong>「剥がす瞬間の次数」＝「その時まだ残っている隣人の数」＝「自分より後に剥がされる隣人の数」＝「順序で自分より後ろに並ぶ隣人の数」</strong>。全部同じものを別の言葉で呼んでいるだけです。</p>
+<p>d は「剥がす瞬間の次数」の最大値でした。ということは、<strong>誰の「後ろの隣人」も d 個を超えられない</strong>。証明ではなく、定義の言い換えです。</p>
+<p>下の並び（剥がした順）の頂点をクリックすると、元のグラフ上で「後ろの隣人」が青く光ります。全員 d 個以下になっていることを確認してください。</p>
+
+<figure>
+<svg id="checkSvg" viewBox="0 0 420 300" role="img" aria-label="後ろの隣人の確認グラフ"></svg>
+</figure>
+<div class="order-strip" id="checkStrip"></div>
+<p class="msg" id="checkMsg">上の剥がしを最後まで終えると、ここで確認できます。</p>
+
+<h2>なぜこれが「すべての鍵」なのか</h2>
+<p>Eppstein のアルゴリズムは、この順序で頂点 v を処理するとき、候補集合 <strong>P を「v の後ろの隣人」だけ</strong>にします。いま確かめたとおりそれは d 個以下。Bron–Kerbosch の爆発は候補集合のサイズ k に対する 3<sup>k/3</sup> なので、各頂点の仕事が 3<sup>n/3</sup> ではなく 3<sup>d/3</sup> に潰れる——これが O(d·n·3<sup>d/3</sup>) の正体です。実世界の疎グラフは d が数十程度なので、n が数百万でも回ります。</p>
+
+<h2>確認クイズ</h2>
+<p id="q1">Q1. 「剥がす瞬間の次数」が数えているものは？</p>
+<button class="quiz-opt" data-q="1" data-ok="0">まだ残っている隣人の数</button>
+<button class="quiz-opt" data-q="1" data-ok="1">もう剥がされた隣人の数</button>
+<p id="q2" style="margin-top:1.5rem">Q2. 一本道のグラフ（パス）の縮退数 d は？（端の頂点から剥がしてみる）</p>
+<button class="quiz-opt" data-q="2" data-ok="0">1</button>
+<button class="quiz-opt" data-q="2" data-ok="1">2</button>
+<button class="quiz-opt" data-q="2" data-ok="1">3</button>
+<p class="msg" id="quizMsg"></p>
+
+<div class="footnav">
+  <p>一次資料: <a href="https://arxiv.org/abs/1006.5440">Eppstein–Löffler–Strash, arXiv:1006.5440</a> の §2 "degeneracy" 定義（1ページ弱）。今日の内容の原文です。</p>
+  <p>関連: <code>docs/artifacts/bron-kerbosch-guide.html</code> ・ わからない点はいつでもエージェントに質問攻めを。</p>
+</div>
+</main>
+
+<script>
+// グラフ定義: A中心の小グラフ。剥がし順 D,C,A,B,E / d=2 になるよう設計
+// 配置注意: B–E 辺が他の頂点の真下を通らないよう A を中央から外している
+const NODES = { A:[140,200], B:[210,50], C:[360,80], D:[60,80], E:[300,220] };
+const EDGES = [["A","B"],["A","C"],["B","C"],["A","D"],["A","E"],["B","E"]];
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+function drawGraph(svg, prefix) {
+  svg.innerHTML = "";
+  for (const [a,b] of EDGES) {
+    const l = document.createElementNS("http://www.w3.org/2000/svg","line");
+    const [x1,y1] = NODES[a], [x2,y2] = NODES[b];
+    l.setAttribute("x1",x1); l.setAttribute("y1",y1);
+    l.setAttribute("x2",x2); l.setAttribute("y2",y2);
+    l.setAttribute("stroke", css("--line")); l.setAttribute("stroke-width", 2.5);
+    l.id = `${prefix}-e-${a}${b}`;
+    svg.appendChild(l);
+  }
+  for (const [name,[x,y]] of Object.entries(NODES)) {
+    const g = document.createElementNS("http://www.w3.org/2000/svg","g");
+    g.id = `${prefix}-n-${name}`;
+    const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    c.setAttribute("cx",x); c.setAttribute("cy",y); c.setAttribute("r",20);
+    c.setAttribute("fill", css("--card")); c.setAttribute("stroke", css("--ink-soft"));
+    c.setAttribute("stroke-width", 2);
+    const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x",x); t.setAttribute("y",y+5); t.setAttribute("text-anchor","middle");
+    t.setAttribute("font-size",15); t.setAttribute("font-weight",600); t.setAttribute("fill",css("--ink"));
+    t.textContent = name;
+    const badge = document.createElementNS("http://www.w3.org/2000/svg","text");
+    badge.setAttribute("x",x+24); badge.setAttribute("y",y-16); badge.setAttribute("font-size",12);
+    badge.setAttribute("fill",css("--ink-soft")); badge.id = `${prefix}-deg-${name}`;
+    g.append(c,t,badge); svg.appendChild(g);
+  }
+}
+
+const neighbors = n => EDGES.flatMap(([a,b]) => a===n?[b]:b===n?[a]:[]);
+
+// --- ①② 剥がしフェーズ ---
+const peelSvg = document.getElementById("peelSvg");
+let alive, order, removalDeg;
+function updateBadges() {
+  for (const n of Object.keys(NODES)) {
+    const el = document.getElementById(`peel-deg-${n}`);
+    el.textContent = alive.has(n) ? "次数" + neighbors(n).filter(x=>alive.has(x)).length : "";
+  }
+}
+function resetPeel() {
+  alive = new Set(Object.keys(NODES)); order = []; removalDeg = [];
+  drawGraph(peelSvg, "peel"); updateBadges();
+  document.getElementById("orderStrip").innerHTML = "";
+  document.getElementById("dVal").textContent = "?";
+  document.getElementById("peelMsg").textContent = "まだ誰も剥がしていません。全員の次数を見て、いちばん小さい頂点から。";
+  document.getElementById("peelBtn").disabled = false;
+  document.getElementById("checkStrip").innerHTML = "";
+  drawGraph(document.getElementById("checkSvg"), "check");
+  document.getElementById("checkMsg").textContent = "上の剥がしを最後まで終えると、ここで確認できます。";
+}
+document.getElementById("peelBtn").addEventListener("click", () => {
+  let best = null, bestDeg = Infinity;
+  for (const n of [...alive].sort()) {
+    const d = neighbors(n).filter(x=>alive.has(x)).length;
+    if (d < bestDeg) { bestDeg = d; best = n; }
+  }
+  alive.delete(best); order.push(best); removalDeg.push(bestDeg);
+  const g = document.getElementById(`peel-n-${best}`);
+  g.style.opacity = .15;
+  for (const [a,b] of EDGES) if (a===best||b===best) {
+    const e = document.getElementById(`peel-e-${a}${b}`); if (e) e.style.opacity = .12;
+  }
+  updateBadges();
+  const chip = document.createElement("div");
+  chip.className = "order-chip";
+  chip.innerHTML = `${best}<span class="deg">${bestDeg}</span>`;
+  document.getElementById("orderStrip").appendChild(chip);
+  const dNow = Math.max(...removalDeg);
+  document.getElementById("dVal").textContent = dNow;
+  document.getElementById("peelMsg").textContent =
+    `${best} を剥がした。剥がす瞬間の次数は ${bestDeg}（＝まだ残っていた隣人の数）。`;
+  if (alive.size === 0) {
+    document.getElementById("peelBtn").disabled = true;
+    document.getElementById("peelMsg").textContent =
+      `完了。最大値は ${dNow} だったので、このグラフの縮退数 d = ${dNow}。下の③に進んでください。`;
+    document.querySelectorAll("#orderStrip .order-chip").forEach((c,i)=>{
+      if (removalDeg[i]===dNow) c.classList.add("max");
+    });
+    buildCheck(dNow);
+  }
+});
+document.getElementById("resetBtn").addEventListener("click", resetPeel);
+
+// --- ③ 後ろの隣人チェック ---
+function buildCheck(d) {
+  const strip = document.getElementById("checkStrip");
+  strip.innerHTML = "";
+  order.forEach((n,i) => {
+    const chip = document.createElement("div");
+    chip.className = "order-chip clickable";
+    chip.textContent = n;
+    chip.addEventListener("click", () => {
+      strip.querySelectorAll(".order-chip").forEach(c=>c.classList.remove("selected"));
+      chip.classList.add("selected");
+      drawGraph(document.getElementById("checkSvg"), "check");
+      const later = neighbors(n).filter(x => order.indexOf(x) > i);
+      const self = document.querySelector(`#check-n-${n} circle`);
+      self.setAttribute("stroke", css("--warm")); self.setAttribute("stroke-width", 3.5);
+      for (const m of later) {
+        const c2 = document.querySelector(`#check-n-${m} circle`);
+        c2.setAttribute("fill", css("--accent")); c2.setAttribute("stroke", css("--accent"));
+        document.querySelector(`#check-n-${m} text`).setAttribute("fill", css("--bg"));
+      }
+      document.getElementById("checkMsg").textContent =
+        `${n} の後ろの隣人は {${later.join(", ") || "なし"}} で ${later.length} 個 ≤ d = ${d} ✓`;
+    });
+    strip.appendChild(chip);
+  });
+  document.getElementById("checkMsg").textContent = "並びの頂点をクリックしてください。";
+}
+
+// --- クイズ ---
+document.querySelectorAll(".quiz-opt").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const ok = btn.dataset.ok === "0";
+    btn.classList.add(ok ? "correct" : "wrong");
+    document.getElementById("quizMsg").textContent = ok
+      ? (btn.dataset.q === "1"
+          ? "正解。だから「後で剥がされる隣人の数」と同じもの。"
+          : "正解。端（次数1）から剥がし続ければ全員が次数1以下で剥がれる。")
+      : "もう一度。剥がす瞬間に見えているのは誰か？を考えて。";
+  });
+});
+
+resetPeel();
+</script>
+</body>
+</html>

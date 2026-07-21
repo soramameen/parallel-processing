@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>早見表 — バッチ配分の3戦略</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+  table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+  th, td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  code { background: var(--card); padding: .1em .35em; border-radius: 4px; font-size: .88em; }
+</style>
+</head>
+<body>
+<main>
+<h1>早見表 — バッチ配分の3戦略</h1>
+<p class="lede">前提: 重い頂点は縮退順序の末尾に固まる（workload 実測）。n = 頂点数、K = バッチ数。</p>
+<table>
+<tr><th>戦略</th><th>バッチの作り方</th><th>狙いと弱点</th><th>実装</th></tr>
+<tr><td><strong>block</strong></td>
+<td>先頭から連続に <code>batch_size</code> 個ずつ</td>
+<td>単純。重いバッチが最後に配られ、終盤に idle が出る</td>
+<td><code>eppstein_parallel.py</code></td></tr>
+<tr><td><strong>reversed</strong></td>
+<td>順序を逆にしてから連続に区切る（重い方を先に配る）</td>
+<td>終盤の待ちは減る。ただし最重バッチ1個がクリティカルパスになり、それより速くなれない</td>
+<td><code>eppstein_parallel_reversed.py</code></td></tr>
+<tr><td><strong>interleave</strong></td>
+<td>バッチ k = <code>indices[k::K]</code>（K 個おきのストライド）</td>
+<td>どのバッチも軽重が混ざり、重さがほぼ均一。idle はほぼ消える</td>
+<td><code>eppstein_parallel_interleave.py</code></td></tr>
+</table>
+<h2>実測の要点（soc-sign-epinions, w=8, batch=64, repeat 3 最小値, 2026-07-21）</h2>
+<p>block 25.9秒 (idle 32.6%) / reversed 28.5秒 (idle 23.5%) / interleave 24.8秒 (idle 0.1%)。</p>
+<p>idle を消しても 4.3% しか縮まない。M4 の P/E コア非対称により「worker の稼働時間 ≠ 仕事量」で、idle% は均質コアを仮定した指標だから。busy 秒の合計は 139秒 → 198秒 に膨張。</p>
+<div class="footnav"><p>レッスン: <a href="../lessons/0003-batch-strategies.html">0003 バッチ配分の3戦略</a></p></div>
+</main>
+</body>
+</html>

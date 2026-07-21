@@ -1,0 +1,47 @@
+/* 共通レッスンスタイル — teach ワークスペースの全レッスンで読み込む */
+:root {
+  --bg: #fdfdfb;
+  --ink: #23282e;
+  --ink-soft: #5b636d;
+  --line: #e3e4de;
+  --card: #f4f5f0;
+  --accent: #2563a8;
+  --ok: #1a7f4e;
+  --ng: #b0433a;
+  --warm: #a06a12;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#1b1e22; --ink:#e6e8e3; --ink-soft:#9aa2ab; --line:#33383e;
+          --card:#24282d; --accent:#6aa8e8; --ok:#4cc98a; --ng:#e58077; --warm:#dfa74f; }
+}
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif;
+  line-height: 1.9; margin: 0; padding: 3rem 1.2rem 6rem;
+}
+main { max-width: 42rem; margin: 0 auto; }
+h1 { font-size: 1.6rem; line-height: 1.5; text-wrap: balance; margin: 0 0 .4rem; }
+h2 { font-size: 1.15rem; margin: 3rem 0 1rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+.lede { color: var(--ink-soft); margin: 0 0 2.5rem; font-size: .95rem; }
+p { margin: 0 0 1.2rem; }
+.card { background: var(--card); border-radius: 6px; padding: 1.1rem 1.3rem; margin: 1.4rem 0; }
+.card p:last-child { margin-bottom: 0; }
+.label { font-size: .72rem; letter-spacing: .12em; color: var(--ink-soft); display: block; margin-bottom: .5rem; }
+button {
+  font: inherit; font-size: .88rem; cursor: pointer;
+  background: var(--accent); color: var(--bg); border: none;
+  border-radius: 6px; padding: .5rem 1.1rem;
+}
+button:disabled { opacity: .35; cursor: default; }
+button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+button:focus-visible { outline: 2px solid var(--warm); outline-offset: 2px; }
+svg { max-width: 100%; height: auto; display: block; }
+figure { margin: 1.6rem 0; }
+figcaption { font-size: .8rem; color: var(--ink-soft); margin-top: .5rem; line-height: 1.7; }
+.quiz-opt { display: block; width: 100%; text-align: left; margin: .5rem 0;
+  background: var(--card); color: var(--ink); border: 1px solid var(--line); }
+.quiz-opt.correct { border-color: var(--ok); color: var(--ok); font-weight: 600; }
+.quiz-opt.wrong { border-color: var(--ng); color: var(--ng); }
+.footnav { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--line);
+  font-size: .85rem; color: var(--ink-soft); }
+a { color: var(--accent); }

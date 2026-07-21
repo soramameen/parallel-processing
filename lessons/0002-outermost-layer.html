@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>レッスン0002 — 「最外層」とは何か</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+  .order-strip { display: flex; gap: .5rem; margin: .8rem 0; flex-wrap: wrap; }
+  .order-chip { width: 2.6rem; height: 2.6rem; border-radius: 50%; display: grid; place-items: center;
+    background: var(--card); border: 2px solid var(--line); font-weight: 600; cursor: pointer; }
+  .order-chip.selected { border-color: var(--accent); background: var(--accent); color: var(--bg); }
+  .rpx { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: .95rem; margin: .6rem 0;
+    font-variant-numeric: tabular-nums; }
+  .rpx b { font-weight: 600; }
+  .setR { color: var(--ok); } .setP { color: var(--accent); } .setX { color: var(--ng); }
+  .outcome { min-height: 3.5rem; font-size: .9rem; }
+  .tree-note { font-size: .8rem; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<main>
+<h1>「最外層」とは何か — クリークの1人目を選ぶ場所</h1>
+<p class="lede">レッスン 0002 ・ 所要 5 分 ・ 前提: <a href="0001-degeneracy-peeling.html">0001 縮退数 d</a></p>
+
+<h2>再帰は木で、木には層がある</h2>
+<p>Bron–Kerbosch は「候補から1人選んで R に足す」を繰り返す再帰です。実行の様子は木になります。</p>
+<figure>
+<svg viewBox="0 0 640 210" role="img" aria-label="再帰木の層">
+  <g font-family="Hiragino Sans, sans-serif" font-size="12">
+    <circle cx="320" cy="30" r="14" fill="var(--card)" stroke="var(--ink-soft)" stroke-width="2"/>
+    <text x="320" y="34" text-anchor="middle" fill="var(--ink)">∅</text>
+    <text x="350" y="34" fill="var(--ink-soft)">R は空っぽ（根）</text>
+    <g stroke="var(--warm)" stroke-width="2">
+      <line x1="310" y1="42" x2="120" y2="88"/><line x1="315" y1="44" x2="220" y2="88"/>
+      <line x1="320" y1="44" x2="320" y2="88"/><line x1="325" y1="44" x2="420" y2="88"/>
+      <line x1="330" y1="42" x2="520" y2="88"/>
+    </g>
+    <g>
+      <circle cx="120" cy="102" r="14" fill="var(--warm)"/><text x="120" y="106" text-anchor="middle" fill="var(--bg)">D</text>
+      <circle cx="220" cy="102" r="14" fill="var(--warm)"/><text x="220" y="106" text-anchor="middle" fill="var(--bg)">C</text>
+      <circle cx="320" cy="102" r="14" fill="var(--warm)"/><text x="320" y="106" text-anchor="middle" fill="var(--bg)">A</text>
+      <circle cx="420" cy="102" r="14" fill="var(--warm)"/><text x="420" y="106" text-anchor="middle" fill="var(--bg)">B</text>
+      <circle cx="520" cy="102" r="14" fill="var(--warm)"/><text x="520" y="106" text-anchor="middle" fill="var(--bg)">E</text>
+      <text x="575" y="106" fill="var(--warm)" font-weight="600">← 最外層</text>
+    </g>
+    <g stroke="var(--line)" stroke-width="1.5">
+      <line x1="114" y1="115" x2="95" y2="150"/><line x1="126" y1="115" x2="145" y2="150"/>
+      <line x1="214" y1="115" x2="195" y2="150"/><line x1="226" y1="115" x2="245" y2="150"/>
+      <line x1="314" y1="115" x2="295" y2="150"/><line x1="326" y1="115" x2="345" y2="150"/>
+    </g>
+    <text x="320" y="175" text-anchor="middle" fill="var(--ink-soft)">… 2人目以降を選ぶ層（ここは今まで通りの再帰）</text>
+  </g>
+</svg>
+<figcaption>層 = 再帰の深さ = 「R に何人入っているか」。最外層は深さ1、つまり<strong>クリークの1人目を誰にするかの分岐</strong>。</figcaption>
+</figure>
+<p>素朴な Bron–Kerbosch では、この1段目も2段目も同じ再帰ルールで処理されます。Eppstein が手を入れたのは<strong>1段目だけ</strong>です。</p>
+<div class="card">
+  <span class="label">Eppstein の置き換え</span>
+  <p>最外層を「再帰任せの分岐」から「degeneracy 順の明示的な for ループ」に置き換える。枝 v の担当は<strong>「v を含み、v より順序が前の頂点は含まない極大クリーク」だけ</strong>。だから初期値が R={v}, P=後ろの隣人, X=前の隣人 になる。2段目より深くは従来のピボット版そのまま。</p>
+</div>
+
+<h2>5つの枝を全部のぞいてみる</h2>
+<p>レッスン0001のグラフ（剥がし順 D, C, A, B, E, d=2）で、最外層の5本の枝をクリックしてください。この5本が最外層の<strong>すべて</strong>です。</p>
+<figure>
+<svg id="g" viewBox="0 0 420 300" role="img" aria-label="対象グラフ"></svg>
+</figure>
+<div class="order-strip" id="strip"></div>
+<div class="rpx" id="rpx"><span class="tree-note">↑ 枝を選ぶと初期値 R / P / X が出ます</span></div>
+<p class="outcome" id="outcome"></p>
+
+<h2>なぜここが並列化の分割点なのか</h2>
+<p>最外層の枝は n 本あり、担当クリークが「最古参メンバーが誰か」で完全に排反なので、<strong>枝同士は一切通信せずに独立実行できます</strong>。root-split 並列化の「root」とはこの最外層のこと。しかも各枝の候補 P は d 個以下（<a href="0001-degeneracy-peeling.html">前回</a>の結論）なので、1本ずつの仕事が小さく抑えられています。ただし枝の重さは頂点ごとに大きく偏るので、実装では動的な仕事の割り当てが効きます。</p>
+
+<h2>確認クイズ</h2>
+<p>Q1. 「最外層」が決めているものは？</p>
+<button class="quiz-opt" data-ok="1">クリークの1人目にする頂点</button>
+<button class="quiz-opt" data-ok="0">クリークの2人目にする頂点</button>
+<p style="margin-top:1.5rem">Q2. B の枝が何も出力しなかった理由は？</p>
+<button class="quiz-opt" data-ok="1">担当クリークが別の枝で既に出たから</button>
+<button class="quiz-opt" data-ok="0">候補が足りずクリークが作れないから</button>
+<p class="msg" id="quizMsg" style="min-height:2rem; font-size:.9rem; color:var(--ink-soft)"></p>
+
+<div class="footnav">
+  <p>一次資料: <a href="https://arxiv.org/abs/1006.5440">arXiv:1006.5440</a> §4 の Theorem 3 直前、for ループの擬似コードが今日の「最外層」の原文です。</p>
+  <p>前: <a href="0001-degeneracy-peeling.html">0001 縮退数 d</a> ・ 不明点はエージェントに質問攻めを。</p>
+</div>
+</main>
+
+<script>
+// レッスン0001と同じグラフ・同じ配置（B–E辺が頂点の裏を通らない配置）
+const NODES = { A:[140,200], B:[210,50], C:[360,80], D:[60,80], E:[300,220] };
+const EDGES = [["A","B"],["A","C"],["B","C"],["A","D"],["A","E"],["B","E"]];
+const ORDER = ["D","C","A","B","E"];
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const neighbors = n => EDGES.flatMap(([a,b]) => a===n?[b]:b===n?[a]:[]);
+
+// 各枝の解説: R={v}, P=後ろの隣人, X=前の隣人 と、その枝の出力
+const BRANCH_NOTES = {
+  D: "P の A を足すと {D, A}。もう伸ばせず X も空なので出力。この枝の担当は「D を含む極大クリーク」全部（D は順序の先頭なので条件が緩い）。",
+  C: "P から A, B を足して {C, A, B}。出力。三角形 A-B-C はこの枝の担当（最古参が C だから）。",
+  A: "X に C, D がいるのは「C や D と組むクリークはもう C, D の枝で扱った」という印。P の B, E を足して {A, B, E} を出力。",
+  B: "E を足すと {B, E} だが、X に A が残る（A は B, E 両方の隣人）。「A を足せばもっと大きい {A,B,E} があり、それは A の枝で出力済み」の意味なので、何も出力しない。X の役割が見える枝。",
+  E: "後ろの隣人がゼロなので P が最初から空、X に A, B。E が最古参になる極大クリークは存在せず、即終了。",
+};
+const BRANCH_OUT = { D:"{A, D} を出力", C:"{A, B, C} を出力", A:"{A, B, E} を出力", B:"出力なし", E:"出力なし" };
+
+function drawGraph(highlight) {
+  const svg = document.getElementById("g");
+  svg.innerHTML = "";
+  for (const [a,b] of EDGES) {
+    const l = document.createElementNS("http://www.w3.org/2000/svg","line");
+    const [x1,y1] = NODES[a], [x2,y2] = NODES[b];
+    l.setAttribute("x1",x1); l.setAttribute("y1",y1); l.setAttribute("x2",x2); l.setAttribute("y2",y2);
+    l.setAttribute("stroke", css("--line")); l.setAttribute("stroke-width", 2.5);
+    svg.appendChild(l);
+  }
+  for (const [name,[x,y]] of Object.entries(NODES)) {
+    const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    c.setAttribute("cx",x); c.setAttribute("cy",y); c.setAttribute("r",20);
+    let fill = css("--card"), stroke = css("--ink-soft"), ink = css("--ink");
+    if (highlight) {
+      if (name === highlight.v)            { fill = css("--warm"); stroke = css("--warm"); ink = css("--bg"); }
+      else if (highlight.P.includes(name)) { fill = css("--accent"); stroke = css("--accent"); ink = css("--bg"); }
+      else if (highlight.X.includes(name)) { fill = css("--ng"); stroke = css("--ng"); ink = css("--bg"); }
+    }
+    c.setAttribute("fill", fill); c.setAttribute("stroke", stroke); c.setAttribute("stroke-width", 2.5);
+    const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x",x); t.setAttribute("y",y+5); t.setAttribute("text-anchor","middle");
+    t.setAttribute("font-size",15); t.setAttribute("font-weight",600); t.setAttribute("fill",ink);
+    t.textContent = name;
+    svg.append(c,t);
+  }
+}
+
+const strip = document.getElementById("strip");
+ORDER.forEach((v,i) => {
+  const chip = document.createElement("div");
+  chip.className = "order-chip"; chip.textContent = v;
+  chip.addEventListener("click", () => {
+    strip.querySelectorAll(".order-chip").forEach(c=>c.classList.remove("selected"));
+    chip.classList.add("selected");
+    const P = neighbors(v).filter(x => ORDER.indexOf(x) > i);
+    const X = neighbors(v).filter(x => ORDER.indexOf(x) < i);
+    drawGraph({v, P, X});
+    document.getElementById("rpx").innerHTML =
+      `<span class="setR"><b>R</b> = {${v}}</span>` +
+      `<span class="setP"><b>P</b> = {${P.join(", ")||"　"}} (後ろの隣人)</span>` +
+      `<span class="setX"><b>X</b> = {${X.join(", ")||"　"}} (前の隣人)</span>`;
+    document.getElementById("outcome").innerHTML =
+      `<strong>${BRANCH_OUT[v]}</strong> — ${BRANCH_NOTES[v]}`;
+  });
+  strip.appendChild(chip);
+});
+drawGraph(null);
+
+document.querySelectorAll(".quiz-opt").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const ok = btn.dataset.ok === "1";
+    btn.classList.add(ok ? "correct" : "wrong");
+    document.getElementById("quizMsg").textContent = ok
+      ? "正解。"
+      : "もう一度。B の枝で X に残っていたのは誰だったか思い出して。";
+  });
+});
+</script>
+</body>
+</html>
