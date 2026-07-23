@@ -2,7 +2,7 @@
 \label{ch:preliminaries}
 
 本章では、以降の章で極大クリーク列挙アルゴリズムを並列化するために必要な概念を定義する。
-グラフとクリークの基本用語から始め、逐次アルゴリズムである Bron--Kerbosch 法とそのピボット版 CLIQUES、疎グラフ向けの Eppstein アルゴリズムを説明する。
+グラフとクリークの基本用語から始め、逐次アルゴリズムである Bron--Kerbosch 法とそのピボット版 CLIQUES、グラフの疎さを測る縮退数と縮退順序、それらを用いる疎グラフ向けの Eppstein アルゴリズムを説明する。
 続いて実験に用いる十種類のグラフを一覧で示し、最後に第\ref{ch:implementation}章以降で使う Python の multiprocessing の前提だけを述べる。
 
 \section{グラフとクリーク}
@@ -82,16 +82,16 @@ $d$ が小さいほど各部分問題は小さく独立性が高い。
   \item \textbf{2次元格子}：$100 \times 100$ の4近傍格子。三角形を持たないため、辺の一本ずつがそのまま極大クリークになる。$d = 2$。
   \item \textbf{疎 Erd\H{o}s--R\'enyi}：平均次数を10に固定して頂点対を一様ランダムに結ぶ $G(n, m)$ 型のグラフ。$d = 7$。
   \item \textbf{スケールフリー Barab\'asi--Albert}：新規頂点が既存頂点の次数に比例した確率で $m = 5$ 本の辺を張る優先的接続モデル。$d = 5$。
-  \item \textbf{密 Erd\H{o}s--R\'enyi}：頂点対ごとに確率 $p = 0.5$ で辺を張る $G(n, p)$ モデル。辺数が $n^2$ で効くため小さい $n$ でのみ使う。$d = 48$。
+  \item \textbf{密 Erd\H{o}s--R\'enyi}：頂点対ごとに確率 $p = 0.5$ で辺を張る $G(n, p)$ モデル。辺数が $n$ の2乗のオーダーで効くため小さい $n$ でのみ使う。$d = 48$。
   \item \textbf{Moon--Moser}：頂点を3個ずつ $k = 11$ 組に振り分けた完全多部グラフ $K_{3,3,\dots,3}$。頂点数 $3k$ に対し極大クリークが $3^{k}$ 個生じる、\ref{sec:bron-kerbosch}節で述べた極値グラフである。$d = 30$。
   \item \textbf{完全グラフ}：全頂点対に辺がある $K_{300}$。極大クリークは全体で1個だけになる。$d = 299$。
 \end{itemize}
 
-実データは、Stanford の SNAP（Stanford Large Network Dataset Collection）が配布する無向グラフ三種である。
+実データは、Stanford の SNAP（Stanford Large Network Dataset Collection）が配布する無向グラフ三種である \cite{snap}。
 いずれも頂点対の行を並べたエッジリスト形式で読み込み、有向や符号つきの情報は捨てて無向グラフとして扱う。
 ca-AstroPh と ca-HepPh は arXiv の共著関係のネットワークで、それぞれ天体物理学分野と高エネルギー物理学分野に対応する。
 soc-sign-epinions は商品レビューサイト Epinions のユーザー間の信頼・不信ネットワークで、符号を無視して無向グラフとして扱う。
-このなかで soc-sign-epinions は頂点数と極大クリーク数がともに大きく、逐次で約95秒かかるため、第\ref{ch:experiments}章では並列化の効果を測る主力データとして用いる。
+このなかで soc-sign-epinions は頂点数と極大クリーク数がともに大きく、Eppstein のアルゴリズムでも逐次で約95秒かかるため、第\ref{ch:experiments}章では並列化の効果を測る主力データとして用いる。
 
 各グラフの頂点数 $n$、縮退数 $d$、極大クリーク数を表\ref{tab:graphs}に示す。
 

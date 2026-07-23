@@ -13,7 +13,7 @@ Conte と Tomita は、CLIQUES と Bron--Kerbosch 法の各変種について、
 本論文の CLIQUES 実装は、この論文が与える擬似コードに従っている。
 
 Eppstein, L\"offler, Strash は、CLIQUES のピボット選択自体は保ちながら、最外層だけを縮退順序に沿って処理することで、計算量を縮退数 $d$ を用いた $O(d n 3^{d/3})$ に抑える変種を示した\cite{eppstein2010}。
-Eppstein と Strash は、続く実験で、実データを含む大規模な疎グラフでもこの変種が CLIQUES より高速に動作することを確かめている\cite{eppstein2013}。
+Eppstein、L\"offler、Strash は、続く実験で、実データを含む大規模な疎グラフでもこの変種が CLIQUES より高速に動作することを確かめている\cite{eppstein2013}。
 本論文は、この Eppstein のアルゴリズムを、CLIQUES との逐次比較を経た上で並列化の対象に選んでいる。
 選定の根拠となる測定結果は第\ref{ch:experiments}章で示す。
 
