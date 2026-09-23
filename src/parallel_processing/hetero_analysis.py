@@ -11,7 +11,8 @@ Linux per-vertex workload, and prints the Markdown tables used in
 - ``phase3``: the schedule comparison on emulated cores;
 - ``sweep``: simulator-only r sweeps, misestimated r, and non-constant r;
 - ``m4``: the M4 runs replayed in the simulator, pinned vs migrating;
-- ``workers``: how many workers to run on the M4 shape.
+- ``workers``: how many workers to run on the M4 shape;
+- ``inrun``: core speeds inside the parallel runs, from the static runs.
 
 Every table takes the minimum compute over repeats (the repo's protocol)
 and drops runs whose host steal exceeds :data:`STEAL_LIMIT` of the CPU time
@@ -462,6 +463,34 @@ def print_workers() -> None:
     print()
 
 
+def print_inrun() -> None:
+    """Core speeds inside the Phase 3 static runs: work assigned to each core
+    (from the same LPT assignment the driver built) over its busy seconds."""
+    costs, _ = hetero_phase3.load_costs(WORKLOAD)
+    rows = [
+        r for r in _rows("phase3.csv")
+        if r["schedule"].startswith("static") and r["graph"].startswith("soc")
+        and r["tag"].startswith("3a") and _ok(r)
+    ]
+    print("| schedule | run | compute | fast-core speed | slow-core speed "
+          "| slow / fast |")
+    print("|---|---|---|---|---|---|")
+    for r in sorted(rows, key=lambda r: (r["schedule"], r["tag"])):
+        base, r_hat = r["schedule"].split("@")
+        c = costs.measured if base == "static-oracle" else costs.predicted
+        speeds = [float(x) for x in r["speeds"].split(";")]
+        assumed = [1.0 if s >= 1 else float(r_hat) for s in speeds]
+        lists = sched_sim.lpt_assign(c, assumed)
+        busy = [float(b) for b in r["busy"].split(";")]
+        eff = [sum(costs.measured[i] for i in lst) / b for lst, b in zip(lists, busy)]
+        fast = [e for e, s in zip(eff, speeds) if s >= 1]
+        slow = [e for e, s in zip(eff, speeds) if s < 1]
+        f, sl = sum(fast) / len(fast), sum(slow) / len(slow)
+        print(f"| {r['schedule']} | {r['tag']} | {float(r['compute_s']):.1f} s "
+              f"| {f:.3f} | {sl:.3f} | {sl / f:.3f} |")
+    print()
+
+
 SECTIONS: dict[str, Callable[[], None]] = {
     "calibration": print_calibration,
     "phase1": print_phase1,
@@ -470,6 +499,7 @@ SECTIONS: dict[str, Callable[[], None]] = {
     "sweep": print_sweep,
     "m4": print_m4,
     "workers": print_workers,
+    "inrun": print_inrun,
 }
 
 

@@ -70,9 +70,20 @@ class SimResult:
 
 
 def lower_bound(costs: Sequence[float], speeds: Sequence[float]) -> float:
-    """No schedule beats total work over total speed, nor the biggest task
-    on the fastest core."""
-    return max(sum(costs) / sum(speeds), max(costs, default=0.0) / max(speeds))
+    """Optimal preemptive makespan on uniform machines (Q|pmtn|Cmax), a lower
+    bound for every schedule here: the k largest tasks cannot finish before
+    their total over the k fastest speeds, for each k below the machine count,
+    and all work cannot finish before the total over all speeds (Horvath, Lam
+    and Sethi 1977; Gonzalez and Sahni 1978)."""
+    tasks = sorted(costs, reverse=True)
+    fast = sorted(speeds, reverse=True)
+    bound = sum(tasks) / sum(fast)
+    work = speed = 0.0
+    for k in range(min(len(tasks), len(fast) - 1)):
+        work += tasks[k]
+        speed += fast[k]
+        bound = max(bound, work / speed)
+    return bound
 
 
 def simulate(

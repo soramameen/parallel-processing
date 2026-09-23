@@ -3,3 +3,50 @@ predictor: log t = -11.306 + 0.0949*|P|
 soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin block              compute=  98.289s idle= 21.2% idle_w= 22.2% busy=59.5/90.8/98.3/61.0 tasks=2060 steal=4.46s
 soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin interleave         compute=  76.370s idle=  0.0% idle_w=  0.0% busy=76.3/76.3/76.4/76.3 tasks=2060 steal=3.61s
 soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin block16            compute=  88.361s idle= 11.6% idle_w= 12.8% busy=74.3/76.2/73.7/88.3 tasks=8240 steal=4.20s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin block1             compute=  77.196s idle=  1.0% idle_w=  1.0% busy=76.5/76.5/76.3/76.3 tasks=131828 steal=4.32s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin lpt                compute=  75.435s idle=  1.2% idle_w=  1.3% busy=74.2/74.2/74.2/75.4 tasks=289 steal=2.43s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin lpt-oracle         compute=  75.031s idle=  0.0% idle_w=  0.0% busy=75.0/75.0/75.0/75.0 tasks=357 steal=3.34s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static@0.43        compute=  77.552s idle=  2.8% idle_w=  3.1% busy=73.1/76.5/74.3/77.5 tasks=2062 steal=2.64s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.26 compute=  83.667s idle= 18.1% idle_w= 11.0% busy=83.7/83.2/53.7/53.6 tasks=2062 steal=3.20s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.43 compute=  84.899s idle=  8.0% idle_w=  9.9% busy=73.5/74.8/84.9/79.2 tasks=2062 steal=3.29s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.6  compute=  99.716s idle= 17.7% idle_w= 24.0% busy=65.7/66.7/96.2/99.7 tasks=2062 steal=2.50s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@1.0  compute= 128.933s idle= 29.8% idle_w= 41.6% busy=52.2/52.7/128.9/127.9 tasks=2060 steal=3.32s
+predictor: log t = -11.306 + 0.0949*|P|
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin block              compute= 132.698s idle= 32.6% idle_w= 43.0% busy=58.7/51.0/115.2/132.7 tasks=2060 steal=4.29s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin interleave         compute=  75.119s idle=  0.1% idle_w=  0.1% busy=75.1/75.1/75.1/75.1 tasks=2060 steal=3.81s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin block16            compute=  94.156s idle= 16.9% idle_w= 21.0% busy=70.8/66.2/82.0/94.1 tasks=8240 steal=3.54s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin block1             compute=  75.210s idle=  1.3% idle_w=  1.3% busy=74.3/74.3/74.1/74.4 tasks=131828 steal=2.60s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin lpt                compute=  75.972s idle=  1.5% idle_w=  2.0% busy=74.0/74.0/76.0/75.3 tasks=289 steal=2.90s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin lpt-oracle         compute=  75.610s idle=  1.1% idle_w=  1.3% busy=74.3/74.3/74.8/75.6 tasks=357 steal=3.50s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static@0.43        compute=  76.237s idle=  2.0% idle_w=  2.1% busy=73.4/75.8/73.2/76.2 tasks=2062 steal=2.85s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.26 compute=  83.589s idle= 18.0% idle_w= 11.0% busy=83.6/83.1/54.1/53.3 tasks=2062 steal=3.14s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.43 compute=  80.614s idle=  4.4% idle_w=  5.8% busy=74.0/74.3/79.4/80.6 tasks=2062 steal=4.01s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.6  compute=  97.846s idle= 16.4% idle_w= 22.9% busy=65.9/65.8/97.7/97.8 tasks=2062 steal=4.22s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@1.0  compute= 133.705s idle= 30.6% idle_w= 42.3% busy=53.5/53.7/130.0/133.7 tasks=2060 steal=4.89s
+predictor: log t = -11.306 + 0.0949*|P|
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin block              compute=  96.021s idle= 20.1% idle_w= 21.0% busy=59.4/90.0/61.4/96.0 tasks=2060 steal=3.32s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin interleave         compute=  76.536s idle=  0.0% idle_w=  0.0% busy=76.5/76.5/76.5/76.5 tasks=2060 steal=4.01s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin block16            compute=  79.820s idle=  6.6% idle_w=  6.2% busy=70.7/79.8/70.7/77.0 tasks=8240 steal=3.22s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin block1             compute=  76.815s idle=  1.0% idle_w=  1.0% busy=76.1/76.1/76.0/75.9 tasks=131828 steal=3.53s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin lpt                compute=  76.804s idle=  1.4% idle_w=  1.5% busy=75.4/75.4/76.8/75.4 tasks=289 steal=3.91s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin lpt-oracle         compute=  76.797s idle=  0.4% idle_w=  0.5% busy=76.3/76.3/76.5/76.8 tasks=357 steal=3.32s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static@0.43        compute=  76.377s idle=  2.6% idle_w=  2.6% busy=72.9/75.8/72.5/76.4 tasks=2062 steal=2.51s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.26 compute=  84.426s idle= 18.5% idle_w= 11.3% busy=84.4/83.5/53.1/54.4 tasks=2062 steal=3.24s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.43 compute=  78.169s idle=  3.0% idle_w=  4.0% busy=73.5/74.0/77.5/78.2 tasks=2062 steal=4.04s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.6  compute=  97.680s idle= 16.5% idle_w= 22.9% busy=65.8/66.1/96.7/97.7 tasks=2062 steal=2.85s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@1.0  compute= 130.838s idle= 30.1% idle_w= 42.0% busy=52.7/52.6/129.6/130.8 tasks=2060 steal=4.27s
+=== 3b 03:11:27
+predictor: log t = -11.306 + 0.0949*|P|
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin interleave         compute=  90.019s idle=  0.0% idle_w=  0.0% busy=90.0/90.0/90.0/90.0 tasks=2060 steal=4.89s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin lpt                compute=  91.651s idle=  1.3% idle_w=  1.4% busy=90.1/90.1/90.1/91.6 tasks=289 steal=4.51s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.43 compute=  95.076s idle=  8.0% idle_w=  5.0% busy=94.2/95.1/80.1/80.4 tasks=2062 steal=4.32s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.53 compute=  93.374s idle=  2.7% idle_w=  3.3% busy=89.4/89.5/91.2/93.4 tasks=2062 steal=4.98s
+predictor: log t = -11.306 + 0.0949*|P|
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin interleave         compute=  90.006s idle=  0.1% idle_w=  0.1% busy=90.0/90.0/89.9/90.0 tasks=2060 steal=5.15s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin lpt                compute=  92.263s idle=  2.2% idle_w=  2.6% busy=89.3/89.3/89.8/92.3 tasks=289 steal=5.00s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.43 compute=  94.768s idle=  7.6% idle_w=  4.8% busy=94.8/93.9/80.7/80.8 tasks=2062 steal=4.04s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.53 compute=  91.355s idle=  2.1% idle_w=  2.4% busy=88.4/88.8/89.4/91.3 tasks=2062 steal=4.92s
+predictor: log t = -11.306 + 0.0949*|P|
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin interleave         compute=  90.695s idle=  0.0% idle_w=  0.0% busy=90.7/90.7/90.7/90.7 tasks=2060 steal=3.80s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin lpt                compute=  88.859s idle=  0.9% idle_w=  1.0% busy=87.8/87.8/88.9/87.8 tasks=289 steal=4.00s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.43 compute=  96.278s idle=  8.8% idle_w=  5.7% busy=94.4/96.3/80.2/80.3 tasks=2062 steal=4.92s

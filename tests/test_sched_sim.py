@@ -55,6 +55,11 @@ class TestLpt:
     def test_lower_bound(self) -> None:
         assert sched_sim.lower_bound([1.0, 1.0, 10.0], [1.0, 1.0]) == 10.0
         assert sched_sim.lower_bound([1.0] * 10, [1.0, 0.5, 0.5]) == 5.0
+        # two big tasks on a fast and a slow core: (4 + 4) / (1 + 0.5) beats
+        # both the single-task bound (4) and the total bound (9 / 2)
+        assert sched_sim.lower_bound([4.0, 4.0, 1.0], [1.0, 0.5, 0.5]) == (
+            pytest.approx(8.0 / 1.5)
+        )
 
 
 class TestMigration:
