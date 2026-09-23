@@ -2,3 +2,4 @@
 predictor: log t = -11.306 + 0.0949*|P|
 soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin block              compute=  98.289s idle= 21.2% idle_w= 22.2% busy=59.5/90.8/98.3/61.0 tasks=2060 steal=4.46s
 soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin interleave         compute=  76.370s idle=  0.0% idle_w=  0.0% busy=76.3/76.3/76.4/76.3 tasks=2060 steal=3.61s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin block16            compute=  88.361s idle= 11.6% idle_w= 12.8% busy=74.3/76.2/73.7/88.3 tasks=8240 steal=4.20s

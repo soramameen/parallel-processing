@@ -10,7 +10,8 @@ Linux per-vertex workload, and prints the Markdown tables used in
 - ``sim``: the simulator's makespan for the same runs and its error;
 - ``phase3``: the schedule comparison on emulated cores;
 - ``sweep``: simulator-only r sweeps, misestimated r, and non-constant r;
-- ``m4``: the M4 runs replayed in the simulator, pinned vs migrating.
+- ``m4``: the M4 runs replayed in the simulator, pinned vs migrating;
+- ``workers``: how many workers to run on the M4 shape.
 
 Every table takes the minimum compute over repeats (the repo's protocol)
 and drops runs whose host steal exceeds :data:`STEAL_LIMIT` of the CPU time
@@ -436,6 +437,31 @@ def print_m4() -> None:
     print(f"\n(clean-session interleave w=8: {M4_CLEAN_INTERLEAVE_W8} s)\n")
 
 
+def print_workers() -> None:
+    """How many workers to run on the M4 shape (4 fast + 6 slow cores)."""
+    w = sched_sim.Workload.from_csv(WORKLOAD)
+    total = sum(w.seconds)
+    print(f"this host's soc costs ({total:.1f} s at full speed); cores 4 fast + 6 "
+          "slow; workers start on the fast cores\n")
+    print("| r | workers | block pinned | block migrating | interleave pinned "
+          "| interleave migrating | lower bound |")
+    print("|---|---|---|---|---|---|---|")
+    for r in (0.26, 0.43, 0.6):
+        cores = [1.0] * 4 + [r] * 6
+        for workers in (4, 6, 8, 10):
+            cells = []
+            for strategy in ("block", "interleave"):
+                costs = [w.cost(b) for b in hetero.make_batches(w.n, strategy, 64)]
+                for mig in (False, True):
+                    res = sched_sim.simulate_dynamic(
+                        costs, cores, workers=workers, migrate=mig
+                    )
+                    cells.append(f"{res.makespan:.1f} s")
+            lb = sched_sim.lower_bound(w.seconds, cores[:workers])
+            print(f"| {r:g} | {workers} | " + " | ".join(cells) + f" | {lb:.1f} s |")
+    print()
+
+
 SECTIONS: dict[str, Callable[[], None]] = {
     "calibration": print_calibration,
     "phase1": print_phase1,
@@ -443,6 +469,7 @@ SECTIONS: dict[str, Callable[[], None]] = {
     "phase3": print_phase3,
     "sweep": print_sweep,
     "m4": print_m4,
+    "workers": print_workers,
 }
 
 

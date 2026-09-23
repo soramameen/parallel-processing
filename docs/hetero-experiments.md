@@ -340,6 +340,41 @@ H3 を見越して r = 0.54 を入れた静的 LPT は、H3 だけなら追い�
 OS の移動は、配り方の悪さを部分的に隠す。
 M4 で block と interleave の差が小さく見えたのは、この「隠す」効果による。
 
+### worker を何個使うか（M4 の形、この環境のコスト）
+
+| r | worker 数 | block 固定 | block 移動あり | interleave 固定 | interleave 移動あり | 下限 |
+|---|---|---|---|---|---|---|
+| 0.26 | 4 | 64.7 s | 64.7 s | 49.4 s | 49.4 s | 49.4 s |
+| 0.26 | 6 | 132.6 s | 55.2 s | 45.3 s | 44.1 s | 43.7 s |
+| 0.26 | 8 | 102.7 s | 44.4 s | 41.1 s | 39.6 s | 39.2 s |
+| 0.26 | 10 | 140.1 s | 53.6 s | 37.9 s | 36.0 s | 35.5 s |
+| 0.43 | 4 | 64.7 s | 64.7 s | 49.4 s | 49.4 s | 49.4 s |
+| 0.43 | 6 | 64.6 s | 46.0 s | 40.7 s | 40.7 s | 40.7 s |
+| 0.43 | 8 | 79.8 s | 45.0 s | 34.6 s | 34.6 s | 34.6 s |
+| 0.43 | 10 | 85.6 s | 49.7 s | 30.2 s | 30.1 s | 30.0 s |
+| 0.6 | 4 | 64.7 s | 64.7 s | 49.4 s | 49.4 s | 49.4 s |
+| 0.6 | 6 | 65.0 s | 51.3 s | 38.1 s | 38.0 s | 38.0 s |
+| 0.6 | 8 | 59.0 s | 41.2 s | 31.1 s | 31.0 s | 30.9 s |
+| 0.6 | 10 | 62.3 s | 41.2 s | 26.3 s | 26.2 s | 26.0 s |
+
+worker は速いコアから順に置く。
+interleave では、遅いコアの worker を足すほど速くなり、10 個ですべてのコアを使うのが最速だった（r = 0.43 で 4 個の 49.4 秒から 10 個の 30.1 秒へ）。
+block では逆に、遅いコアの worker を足すと遅くなることがある（固定で 4 個の 64.7 秒から 10 個の 85.6 秒へ）。
+「遅いコアも使うべきか」の答えは、配り方の質で決まる。
+偏りをならせる配り方なら全コアを使い、ならせないなら速いコアだけを使う方がよい。
+
+
+## 関連研究との位置づけ
+
+- **速さの違う機械へのスケジューリング**（uniform machines, Q||Cmax）: 本実験の静的 LPT は、Gonzalez・Ibarra・Sahni（SIAM J. Comput. 1977）が解析した「重い順に、最も早く終わる機械へ」の LPT そのものである[^gis]。LPT は機械の速さが既知であることを前提にした近似アルゴリズムで、本実験はその前提（r とコストが正確に分かる）が崩れたときの損を測ったことになる
+- **速さの違うプロセッサ上の work stealing**: Bender と Rabin は Cilk のプログラムを速さの違うプロセッサで実行する問題を理論的に扱った[^br]。Torng らの AAWS は、静的な非対称（コアの種類）と動的な非対称（DVFS）の両方を考慮した work stealing を提案した[^aaws]。WATS は非対称マルチコア向けに、タスクの重さを見て盗む先を選ぶ方針を評価した[^wats]。本実験の「速いコア専用キュー（giants）」は、これらの考え方を最も単純にしたものである
+- **OS による非対称コア間の移動**: Linux にも、容量の小さい CPU で詰まっているタスク（misfit task）を、より容量の大きい CPU へ能動的に移す仕組みがある[^cap]。H5 で macOS について仮定した「空いた速いコアへの移動」は macOS 特有の振る舞いではなく、非対称コアを持つ OS に一般的な設計である。したがって「worker の idle と速いコアの idle が一致しない」という指摘は、Linux のハイブリッド CPU（Intel の P/E コアなど）にもそのまま当てはまるはずである（未検証）
+
+[^gis]: T. Gonzalez, O. H. Ibarra, S. Sahni, "Bounds for LPT Schedules on Uniform Processors," SIAM J. Comput. 6(1), 1977. <https://sites.cs.ucsb.edu/~teo/papers/SICOMP-Uni.pdf>
+[^br]: M. A. Bender, M. O. Rabin, "Scheduling Cilk multithreaded parallel programs on processors of different speeds," SPAA 2000. <https://dl.acm.org/doi/10.1145/341800.341803>
+[^aaws]: C. Torng, M. Wang, C. Batten, "Asymmetry-Aware Work-Stealing Runtimes," ISCA 2016. <https://www.csl.cornell.edu/~moyang/pdfs/torng-aaws-isca2016.pdf>
+[^wats]: Q. Chen ほか, "WATS: Workload-Aware Task Scheduling in Asymmetric Multi-core Architectures." <https://www.cs.sjtu.edu.cn/~chen-quan/PDF/Conferences/C11.pdf>
+[^cap]: Linux kernel documentation, "Capacity Aware Scheduling"（misfit task migration の節）. <https://docs.kernel.org/scheduler/sched-capacity.html>
 
 ## 妥当性への脅威
 
