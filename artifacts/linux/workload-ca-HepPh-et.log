@@ -1,0 +1,20 @@
+dataset: data/ca-HepPh.txt.gz
+vertices: 12,008
+total cliques (sum over vertices): 14,939
+summed subproblem time: 0.962 s (wall 1.117 s)
+time concentration (n=12,008, total=0.962):
+  heaviest vertex :   0.85%
+  top   0.1% (     12 vertices):   7.00%
+  top   1.0% (    120 vertices):  38.79%
+  top  10.0% (  1,200 vertices):  87.54%
+cliques concentration (n=12,008, total=14,939.000):
+  heaviest vertex :   0.78%
+  top   0.1% (     12 vertices):   5.61%
+  top   1.0% (    120 vertices):  18.50%
+  top  10.0% (  1,200 vertices):  45.56%
+per-vertex time histogram (log bins):
+    1e-6 - 1e-5 s:    7,166 ##################################################
+    1e-5 - 1e-4 s:    3,848 ###########################
+    1e-4 - 1e-3 s:      703 #####
+    1e-3 - 1e-2 s:      291 ##
+csv: artifacts/linux/workload-ca-HepPh-et.csv

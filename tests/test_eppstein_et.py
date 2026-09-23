@@ -54,3 +54,23 @@ class TestEarlyTermination:
     def test_isolated_and_empty(self) -> None:
         assert count_eppstein_cliques_et({}) == (0, 0)
         assert count_eppstein_cliques_et({0: set(), 1: set()}) == (2, 1)
+
+    def test_subproblems_sum_to_the_total(self) -> None:
+        from parallel_processing.eppstein import degeneracy_ordering
+        from parallel_processing.eppstein_et import count_subproblem_et
+
+        graph = clique_with_pendants(15, 4) | {
+            v + 100: {w + 100 for w in nbrs}
+            for v, nbrs in random_graph(30, 0.3, 2).items()
+        }
+        ordering, _ = degeneracy_ordering(graph)
+        position = {v: i for i, v in enumerate(ordering)}
+        total = sum(
+            count_subproblem_et(
+                graph,
+                {w for w in graph[v] if position[w] > i},
+                {w for w in graph[v] if position[w] < i},
+            )
+            for i, v in enumerate(ordering)
+        )
+        assert total == count_eppstein_cliques(graph)[0]

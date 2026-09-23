@@ -1,0 +1,20 @@
+dataset: data/ca-AstroPh.txt.gz
+vertices: 18,772
+total cliques (sum over vertices): 36,428
+summed subproblem time: 1.477 s (wall 1.780 s)
+time concentration (n=18,772, total=1.477):
+  heaviest vertex :   0.22%
+  top   0.1% (     18 vertices):   2.94%
+  top   1.0% (    187 vertices):  17.89%
+  top  10.0% (  1,877 vertices):  65.06%
+cliques concentration (n=18,772, total=36,428.000):
+  heaviest vertex :   0.25%
+  top   0.1% (     18 vertices):   3.00%
+  top   1.0% (    187 vertices):  16.40%
+  top  10.0% (  1,877 vertices):  54.64%
+per-vertex time histogram (log bins):
+    1e-6 - 1e-5 s:    7,832 ##################################################
+    1e-5 - 1e-4 s:    7,624 #################################################
+    1e-4 - 1e-3 s:    3,126 ####################
+    1e-3 - 1e-2 s:      190 #
+csv: artifacts/linux/workload-ca-AstroPh-et.csv

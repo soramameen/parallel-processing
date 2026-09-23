@@ -62,40 +62,61 @@ def count_eppstein_cliques_et(graph: Graph) -> tuple[int, int]:
     return count, largest
 
 
+def count_subproblem_et(graph: Graph, p: set[int], x: set[int]) -> int:
+    """Maximal cliques in one outer vertex's subproblem, with early
+    termination; the per-vertex unit a profiler or parallel worker times."""
+    count = 0
+
+    def report(_: list[int]) -> None:
+        nonlocal count
+        count += 1
+
+    _search(graph, [0], p, x, report)
+    return count
+
+
+def _search(
+    graph: Graph,
+    r: list[int],
+    p: set[int],
+    x: set[int],
+    report: Callable[[list[int]], None],
+) -> None:
+    """The recursive search below one outer vertex (``r`` holds it)."""
+    if not p and not x:
+        report(r)
+        return
+    pivot = max(p | x, key=lambda u: len(p & graph[u]))
+    size = len(p)
+    # P can only be a clique if the best pivot sees all of P but itself;
+    # that pre-check is one intersection, so the full test (every u in P
+    # scoring |P| - 1) runs only on the rare clique-shaped candidates.
+    if (
+        size > 1
+        and len(p & graph[pivot]) == size - 1
+        and all(len(p & graph[u]) == size - 1 for u in p)
+    ):
+        # P is a clique: R ∪ P is this subtree's only candidate.
+        if not any(p <= graph[u] for u in x):
+            r.extend(p)
+            report(r)
+            del r[-size:]
+        return
+    for v in list(p - graph[pivot]):
+        neighbours = graph[v]
+        r.append(v)
+        _search(graph, r, p & neighbours, x & neighbours, report)
+        r.pop()
+        p.discard(v)
+        x.add(v)
+
+
 def _bron_kerbosch_degeneracy_et(
     graph: Graph, report: Callable[[list[int]], None]
 ) -> None:
     sys.setrecursionlimit(max(sys.getrecursionlimit(), len(graph) + 1000))
 
     r: list[int] = []
-
-    def bron_kerbosch_pivot(p: set[int], x: set[int]) -> None:
-        if not p and not x:
-            report(r)
-            return
-        pivot = max(p | x, key=lambda u: len(p & graph[u]))
-        size = len(p)
-        # P can only be a clique if the best pivot sees all of P but itself;
-        # that pre-check is one intersection, so the full test (every u in P
-        # scoring |P| - 1) runs only on the rare clique-shaped candidates.
-        if (
-            size > 1
-            and len(p & graph[pivot]) == size - 1
-            and all(len(p & graph[u]) == size - 1 for u in p)
-        ):
-            # P is a clique: R ∪ P is this subtree's only candidate.
-            if not any(p <= graph[u] for u in x):
-                r.extend(p)
-                report(r)
-                del r[-size:]
-            return
-        for v in list(p - graph[pivot]):
-            neighbours = graph[v]
-            r.append(v)
-            bron_kerbosch_pivot(p & neighbours, x & neighbours)
-            r.pop()
-            p.discard(v)
-            x.add(v)
 
     ordering, _ = degeneracy_ordering(graph)
     position = {v: i for i, v in enumerate(ordering)}
@@ -104,5 +125,5 @@ def _bron_kerbosch_degeneracy_et(
         p = {w for w in graph[v] if position[w] > pos}
         x = {w for w in graph[v] if position[w] < pos}
         r.append(v)
-        bron_kerbosch_pivot(p, x)
+        _search(graph, r, p, x, report)
         r.pop()

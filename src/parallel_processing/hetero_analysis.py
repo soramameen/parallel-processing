@@ -12,7 +12,8 @@ Linux per-vertex workload, and prints the Markdown tables used in
 - ``sweep``: simulator-only r sweeps, misestimated r, and non-constant r;
 - ``m4``: the M4 runs replayed in the simulator, pinned vs migrating;
 - ``workers``: how many workers to run on the M4 shape;
-- ``inrun``: core speeds inside the parallel runs, from the static runs.
+- ``inrun``: core speeds inside the parallel runs, from the static runs;
+- ``et``: ca-HepPh's parallel ceiling with and without early termination.
 
 Every table takes the minimum compute over repeats (the repo's protocol)
 and drops runs whose host steal exceeds :data:`STEAL_LIMIT` of the CPU time
@@ -494,6 +495,33 @@ def print_inrun() -> None:
     print()
 
 
+def print_et() -> None:
+    """ca-HepPh's parallel ceiling with and without early termination: the
+    speedup over one fast core of the best dynamic schedule (lpt-oracle)
+    and of the preemptive lower bound, on growing machines."""
+    machines = {
+        "4F": [1.0] * 4,
+        "4F+6S (M4 shape, r=0.43)": [1.0] * 4 + [0.43] * 6,
+        "8F": [1.0] * 8,
+        "16F": [1.0] * 16,
+        "32F": [1.0] * 32,
+    }
+    print("| machine | costs | total | heaviest vertex | lpt-oracle speedup "
+          "| bound on speedup |")
+    print("|---|---|---|---|---|---|")
+    for name, speeds in machines.items():
+        for label, csv_name in (("plain", "workload-ca-HepPh.csv"),
+                                ("early termination", "workload-ca-HepPh-et.csv")):
+            costs, _ = hetero_phase3.load_costs(ART / csv_name)
+            total = sum(costs.measured)
+            res = _sim_schedule("lpt-oracle", speeds, costs)
+            lb = sched_sim.lower_bound(costs.measured, speeds)
+            share = max(costs.measured) / total
+            print(f"| {name} | {label} | {total:.3f} s | {100 * share:.2f}% "
+                  f"| {total / res.makespan:.2f}x | {total / lb:.2f}x |")
+    print()
+
+
 SECTIONS: dict[str, Callable[[], None]] = {
     "calibration": print_calibration,
     "phase1": print_phase1,
@@ -503,6 +531,7 @@ SECTIONS: dict[str, Callable[[], None]] = {
     "m4": print_m4,
     "workers": print_workers,
     "inrun": print_inrun,
+    "et": print_et,
 }
 
 
