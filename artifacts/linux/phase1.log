@@ -10,3 +10,4 @@ soc-sign-epinions.txt.gz   run=0 cores=F,F,S,S   r=0.75 block      compute=  78.
 soc-sign-epinions.txt.gz   run=0 cores=F,F,S,S   r=0.75 interleave compute=  58.858s idle=  0.9% idle_w=  0.9% busy=58.4/58.3/58.2/58.3 steal=3.91s cliques=22,226,173
 soc-sign-epinions.txt.gz   run=0 cores=F,S,S,S   r=0.43 block      compute=  99.024s idle=  8.2% idle_w=  8.4% busy=90.1/85.1/89.6/98.9 steal=4.36s cliques=22,226,173
 soc-sign-epinions.txt.gz   run=0 cores=F,S,S,S   r=0.43 interleave compute=  92.802s idle=  0.7% idle_w=  0.7% busy=92.2/92.2/92.2/92.1 steal=5.25s cliques=22,226,173
+soc-sign-epinions.txt.gz   run=0 cores=F,S,S,S   r=0.26 block      compute= 160.381s idle= 21.9% idle_w= 26.3% busy=108.1/160.2/103.9/128.9 steal=4.83s cliques=22,226,173
