@@ -160,7 +160,8 @@ def _print_runs(runs: Sequence[Run], label: str) -> None:
     print("|---|---|---|---|---|---|---|---|---|---|---|---|")
     for t in runs:
         print(
-            f"| {t.cores} | {t.r or '-'} | {t.strategy} | {t.compute:.1f} s "
+            f"| {t.cores} | {t.r or '-'} | {t.strategy} "
+            f"| {t.compute:.{3 if t.compute < 10 else 1}f} s "
             f"| {t.throughput:.2f} | {t.ideal:.2f} | {100 * t.efficiency:.0f}% "
             f"| {t.idle:.1f}% | {t.idle_w:.1f}% | {sum(t.busy):.0f} s | {t.runs} "
             f"| {t.spread:.2f} |"
@@ -470,12 +471,13 @@ def print_inrun() -> None:
     rows = [
         r for r in _rows("phase3.csv")
         if r["schedule"].startswith("static") and r["graph"].startswith("soc")
-        and r["tag"].startswith("3a") and _ok(r)
+        and r["tag"][:2] in ("3a", "3c", "3e") and r.get("migrate", "0") == "0"
+        and _ok(r)
     ]
-    print("| schedule | run | compute | fast-core speed | slow-core speed "
+    print("| schedule | period | run | compute | fast-core speed | slow-core speed "
           "| slow / fast |")
-    print("|---|---|---|---|---|---|")
-    for r in sorted(rows, key=lambda r: (r["schedule"], r["tag"])):
+    print("|---|---|---|---|---|---|---|")
+    for r in sorted(rows, key=lambda r: (int(r["period_us"]), r["schedule"], r["tag"])):
         base, r_hat = r["schedule"].split("@")
         c = costs.measured if base == "static-oracle" else costs.predicted
         speeds = [float(x) for x in r["speeds"].split(";")]
@@ -486,7 +488,8 @@ def print_inrun() -> None:
         fast = [e for e, s in zip(eff, speeds) if s >= 1]
         slow = [e for e, s in zip(eff, speeds) if s < 1]
         f, sl = sum(fast) / len(fast), sum(slow) / len(slow)
-        print(f"| {r['schedule']} | {r['tag']} | {float(r['compute_s']):.1f} s "
+        print(f"| {r['schedule']} | {int(r['period_us']) // 1000} ms | {r['tag']} "
+              f"| {float(r['compute_s']):.1f} s "
               f"| {f:.3f} | {sl:.3f} | {sl / f:.3f} |")
     print()
 

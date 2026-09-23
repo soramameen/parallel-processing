@@ -238,6 +238,7 @@ def fig_misestimate() -> str:
         x = left + (right - left) * (h - 0.1) / 0.9
         svg.text(x, bottom + 16, f"{h:g}", "tick", "middle")
     svg.text(right, bottom + 34, "静的配分に入れた r", "tick", "end")
+    svg.text(left, bottom + 34, "2.0 を超える点は上端に描いた", "tick")
 
     def yof(v: float) -> float:
         return bottom - (bottom - top) * (min(v, ymax) - ymin) / (ymax - ymin)
@@ -273,10 +274,49 @@ def fig_misestimate() -> str:
     return svg.render()
 
 
+def fig_migration() -> str:
+    """3e: the same schedules with pinned and migrating workers (F,F,S,S)."""
+    rows = [
+        r for r in ha._rows("phase3.csv") if r["tag"].startswith("3e") and ha._ok(r)
+    ]
+    best: dict[tuple[str, str, str], float] = {}
+    for row_ in rows:
+        key = (row_["r"], row_["schedule"].split("@")[0], row_["migrate"])
+        best[key] = min(best.get(key, float("inf")), float(row_["compute_s"]))
+    order = ["block", "reversed", "interleave", "lpt", "static-oracle"]
+    configs = [(r, sched) for r in ("0.43", "0.26") for sched in order]
+    left, right, top, row = 170, 600, 64, 36
+    svg = Svg(640, top + row * len(configs) + 44, [])
+    svg.text(16, 24, "worker を固定したときと移動させたとき（F,F,S,S、実測）", "title")
+    _legend(svg, 16, 46, ["固定", "移動あり"])
+    vmax = 220.0
+    y1 = top + row * len(configs)
+    _x_axis(svg, left, right, top - 6, y1, vmax, 50.0, " 秒")
+    for i, (r, sched) in enumerate(configs):
+        y = top + i * row
+        label = f"r={r}  {sched.replace('static-oracle', 'static')}"
+        svg.text(left - 10, y + 15, label, anchor="end")
+        for j, mig in enumerate(("0", "1")):
+            v = best[(r, sched, mig)]
+            length = (right - left) * v / vmax
+            _hbar(
+                svg,
+                left,
+                y + 2 + j * 13,
+                length,
+                11,
+                SERIES[j],
+                f"{label} {'移動あり' if mig == '1' else '固定'}: {v:.1f} 秒",
+            )
+            svg.text(left + length + 6, y + 12 + j * 13, f"{v:.1f}", "tick")
+    return svg.render()
+
+
 FIGURES = {
     "hetero-phase1.svg": fig_phase1,
     "hetero-m4-replay.svg": fig_m4,
     "hetero-misestimate.svg": fig_misestimate,
+    "hetero-migration.svg": fig_migration,
 }
 
 

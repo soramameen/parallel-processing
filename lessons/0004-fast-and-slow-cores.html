@@ -82,19 +82,28 @@
 <p>block の idle の多くは、速いコアがすでに別の worker で埋まっている時間だったので、それを消しても速いコアの仕事は増えない。</p>
 <p>idle% は「worker = コア」という前提を暗に置いた指標である。</p></div>
 
-<h2>Linux での実測（コアを固定したエミュレーション）</h2>
-<p>M4 では worker の移動を止められない。そこで Linux 上で、cgroup の CPU 時間制限で遅いコアを作り、worker をコアに固定して測った（soc-sign-epinions、3 回の最小値）。</p>
+<h2>Linux での実測（エミュレーション）</h2>
+<p>M4 では worker の移動を止められない。そこで Linux 上で、cgroup の CPU 時間制限で遅いコアを作って測った（soc-sign-epinions、速い×2 + 遅い×2）。</p>
+<p>まず、worker をコアに<strong>固定</strong>した場合（3 回の最小値）。</p>
 <div class="table-wrap">
 <table>
 <tr><th>コア構成</th><th>block</th><th>interleave</th><th>短縮</th></tr>
 <tr><td>速い×4</td><td>64.9 秒（idle 22.8%）</td><td>51.1 秒（idle 0.6%）</td><td>1.27 倍</td></tr>
-<tr><td>速い×2 + 遅い×2（r = 0.43）</td><td>95.1 秒（idle 22.8%）</td><td>72.2 秒（idle 0.8%）</td><td>1.32 倍</td></tr>
-<tr><td>速い×2 + 遅い×2（r = 0.26）</td><td>143.2 秒（idle 32.6%）</td><td>81.8 秒（idle 0.5%）</td><td>1.75 倍</td></tr>
+<tr><td>速い×2 + 遅い×2（r = 0.43）</td><td>83.6 秒（idle 12.4%）</td><td>72.2 秒（idle 0.8%）</td><td>1.16 倍</td></tr>
+<tr><td>速い×2 + 遅い×2（r = 0.26）</td><td>143.1 秒（idle 32.5%）</td><td>81.5 秒（idle 0.4%）</td><td>1.76 倍</td></tr>
 </table>
 </div>
 <p style="margin-top:1rem">固定なら、コアの速さが違っても idle を消した分だけ速くなる。</p>
-<p>M4 で速くならなかったのは、コアの速さの違いそのものより、<strong>worker がコアを移動していた</strong>ことが効いていた、というのが新しい仮説（H5）。</p>
-<p>数値は 1 回目の測定。確定値は <code>docs/hetero-experiments.md</code> を参照。</p>
+<p>次に、同じ構成で worker を<strong>移動あり</strong>にした場合（2 回の最小値、別の実行器なので上の表と絶対値は少し違う）。</p>
+<div class="table-wrap">
+<table>
+<tr><th>r</th><th>block 固定 → 移動あり</th><th>interleave 固定 → 移動あり</th><th>block ÷ interleave</th></tr>
+<tr><td>0.43</td><td>108.2 → 88.9 秒</td><td>75.4 → 75.5 秒</td><td>1.43 → 1.18 倍</td></tr>
+<tr><td>0.26</td><td>211.4 → 98.4 秒</td><td>85.9 → 85.5 秒</td><td>2.46 → 1.15 倍</td></tr>
+</table>
+</div>
+<p style="margin-top:1rem">移動は block だけを大きく速くし、interleave はほとんど変えない。その結果、idle を消す効果が小さく見える。</p>
+<p>M4 で interleave の効果が 4.3% しかなかったのは、コアの速さの違いよりも、<strong>worker がコアを移動していた</strong>ことが効いていた、というのが今回の結論（M4 実機での確認はまだ）。詳しくは <code>docs/hetero-experiments.md</code>。</p>
 
 <h2>確認クイズ</h2>
 <div class="card">

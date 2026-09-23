@@ -11,6 +11,7 @@ predictor for cost-model scheduling experiments.
 Usage::
 
     python -m parallel_processing.workload_profile [--out-dir DIR] [path-to-edge-list]
+    python -m parallel_processing.workload_profile --branches K [--out-dir DIR] [path]
 
 Writes ``<DIR>/workload-<dataset>.csv`` (``DIR`` defaults to ``artifacts``,
 where the M4 profiles live) and prints a summary.
@@ -120,6 +121,36 @@ def run(path: str | Path, out_dir: str | Path = "artifacts") -> None:
     print(f"csv: {out}")
 
 
+def profile_branches(graph: Graph, top: int) -> list[tuple[int, int, int, float]]:
+    """Time each first-level branch of the ``top`` costliest outer vertices.
+
+    The branches are the ones :func:`parallel_processing.hetero.split_root`
+    defines, timed through the same code path the pull executor runs, so a
+    simulator can price a split schedule. Rows are (pos, branch, |P| of the
+    branch, seconds).
+    """
+    from parallel_processing import hetero
+
+    rows = profile(graph)
+    ordering, _ = degeneracy_ordering(graph)
+    _init_worker(graph, ordering)
+    position = eppstein_parallel._position
+    heavy = sorted(rows, key=lambda r: -r[5])[:top]
+    out = []
+    for pos, *_ in heavy:
+        root = hetero.split_root(graph, ordering, position, pos)
+        if root is None:
+            continue
+        p, _, branches = root
+        for j, v in enumerate(branches):
+            size = len(p & graph[v])
+            p = p - {v}
+            start = time.perf_counter()
+            hetero._count_item((pos, j))
+            out.append((pos, j, size, time.perf_counter() - start))
+    return out
+
+
 def main(argv: list[str] | None = None) -> None:
     """CLI entry point; ``argv`` defaults to ``sys.argv[1:]``."""
     args = list(sys.argv[1:] if argv is None else argv)
@@ -128,8 +159,22 @@ def main(argv: list[str] | None = None) -> None:
         i = args.index("--out-dir")
         out_dir = args[i + 1]
         del args[i : i + 2]
+    if "--branches" in args:
+        i = args.index("--branches")
+        top = int(args[i + 1])
+        del args[i : i + 2]
+        path = Path(args[0] if args else DEFAULT_DATASET)
+        out = Path(out_dir) / f"branches-{path.name.split('.')[0]}.csv"
+        branch_rows = profile_branches(load_edge_list(path), top)
+        with out.open("w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["pos", "branch", "p_size", "seconds"])
+            writer.writerows(branch_rows)
+        print(f"{len(branch_rows)} branches of the {top} costliest vertices: {out}")
+        return
     run(args[0] if args else DEFAULT_DATASET, out_dir)
 
 
 if __name__ == "__main__":
     main()
+
