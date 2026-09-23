@@ -55,3 +55,26 @@ class TestLpt:
     def test_lower_bound(self) -> None:
         assert sched_sim.lower_bound([1.0, 1.0, 10.0], [1.0, 1.0]) == 10.0
         assert sched_sim.lower_bound([1.0] * 10, [1.0, 0.5, 0.5]) == 5.0
+
+
+class TestMigration:
+    def test_pinned_straggler_stays_slow(self) -> None:
+        # fast core finishes its task at t=1; the slow core's task of 2
+        # at speed 0.5 ends at t=4 when pinned
+        r = sched_sim.simulate([[1.0], [2.0]], [1.0, 0.5], [[0], [1]])
+        assert r.makespan == pytest.approx(4.0)
+
+    def test_straggler_moves_to_freed_fast_core(self) -> None:
+        # same, but at t=1 the slow worker (1.5 left) moves to the fast core
+        r = sched_sim.simulate([[1.0], [2.0]], [1.0, 0.5], [[0], [1]], migrate=True)
+        assert r.makespan == pytest.approx(2.5)
+
+    def test_fewer_workers_than_cores(self) -> None:
+        # two workers on three cores; the third core is never used
+        r = sched_sim.simulate_dynamic([1.0, 2.0], [1.0, 0.5, 0.5], workers=2)
+        assert r.makespan == pytest.approx(4.0)
+        assert len(r.busy) == 2
+        r = sched_sim.simulate_dynamic(
+            [1.0, 2.0], [1.0, 0.5, 0.5], workers=2, migrate=True
+        )
+        assert r.makespan == pytest.approx(2.5)

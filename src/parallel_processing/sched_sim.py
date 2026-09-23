@@ -82,64 +82,98 @@ def simulate(
     overhead: float = 0.0,
     fast_scale: Callable[[int], float] | None = None,
     slow_factor: Sequence[Sequence[float]] | None = None,
+    migrate: bool = False,
 ) -> SimResult:
-    """Run the pull model: core ``c`` takes the head of the first non-empty
-    queue in ``poll[c]``. ``queues[q][t]`` is task ``t``'s cost; tasks on a
+    """Run the pull model: worker ``w`` takes the head of the first non-empty
+    queue in ``poll[w]``. ``queues[q][t]`` is task ``t``'s cost; tasks on a
     core of speed 1 take ``cost + overhead`` seconds.
+
+    ``speeds`` are the cores; there are ``len(poll)`` workers, and worker
+    ``w`` starts on core ``w`` (so list fast cores first to mimic an OS that
+    places the first threads on them). With ``migrate``, a worker that runs
+    out of tasks frees its core, and the active worker on the slowest core
+    moves to it when it is faster, carrying its unfinished task: the macOS
+    behaviour of moving a runnable thread onto a P core that goes idle.
+    Without it, workers stay pinned.
 
     ``fast_scale(k)`` multiplies the speed of speed-1 cores while ``k`` of
     them are busy. ``slow_factor[q][t]`` multiplies the speed of a slower
     core running that task (capped at speed 1).
     """
-    cores = len(speeds)
-    fast = [s >= 1 for s in speeds]
+    workers = len(poll)
+    if workers > len(speeds):
+        raise ValueError(f"{workers} workers for {len(speeds)} cores")
+    core = list(range(workers))  # worker -> core it runs on
+    free = set(range(workers, len(speeds)))
     heads = [0] * len(queues)
-    busy = [0.0] * cores
-    tasks = [0] * cores
-    # what each core is running: (queue, task) or None, and its work left
-    running: list[tuple[int, int] | None] = [None] * cores
-    remaining = [0.0] * cores
-    started = [0.0] * cores
+    busy = [0.0] * workers
+    tasks = [0] * workers
+    # what each worker is running: (queue, task) or None, and its work left
+    running: list[tuple[int, int] | None] = [None] * workers
+    remaining = [0.0] * workers
+    started = [0.0] * workers
     now = 0.0
 
-    def take(c: int) -> None:
-        running[c] = None
-        for q in poll[c]:
+    def take(w: int) -> None:
+        running[w] = None
+        for q in poll[w]:
             if heads[q] < len(queues[q]):
                 t = heads[q]
                 heads[q] += 1
-                running[c] = (q, t)
-                remaining[c] = queues[q][t] + overhead
-                started[c] = now
+                running[w] = (q, t)
+                remaining[w] = queues[q][t] + overhead
+                started[w] = now
                 return
 
-    def rate(c: int, busy_fast: int) -> float:
-        s = speeds[c]
-        if fast[c]:
+    def rate(w: int, busy_fast: int) -> float:
+        s = speeds[core[w]]
+        if s >= 1:
             return s * (fast_scale(busy_fast) if fast_scale else 1.0)
-        task = running[c]
+        task = running[w]
         if slow_factor is not None and task is not None:
             return min(1.0, s * slow_factor[task[0]][task[1]])
         return s
 
-    for c in range(cores):
-        take(c)
+    def rebalance() -> None:
+        while free:
+            best = max(free, key=lambda c: speeds[c])
+            active = [w for w in range(workers) if running[w] is not None]
+            if not active:
+                return
+            slowest = min(active, key=lambda w: speeds[core[w]])
+            if speeds[core[slowest]] >= speeds[best]:
+                return
+            free.remove(best)
+            free.add(core[slowest])
+            core[slowest] = best
+
+    for w in range(workers):
+        take(w)
     while True:
-        active = [c for c in range(cores) if running[c] is not None]
+        active = [w for w in range(workers) if running[w] is not None]
         if not active:
             break
-        busy_fast = sum(1 for c in active if fast[c])
-        rates = {c: rate(c, busy_fast) for c in active}
-        dt = min(remaining[c] / rates[c] for c in active)  # next completion
+        busy_fast = sum(1 for w in active if speeds[core[w]] >= 1)
+        rates = {w: rate(w, busy_fast) for w in active}
+        dt = min(remaining[w] / rates[w] for w in active)  # next completion
         now += dt
-        for c in active:
-            remaining[c] -= rates[c] * dt
-        for c in active:
-            if remaining[c] <= 1e-12:
-                busy[c] += now - started[c]
-                tasks[c] += 1
-                take(c)
-    return SimResult(makespan=now, busy=busy, tasks=tasks, speeds=list(speeds))
+        for w in active:
+            remaining[w] -= rates[w] * dt
+        for w in active:
+            if remaining[w] <= 1e-12:
+                busy[w] += now - started[w]
+                tasks[w] += 1
+                take(w)
+                if running[w] is None:
+                    free.add(core[w])
+        if migrate:
+            rebalance()
+    return SimResult(
+        makespan=now,
+        busy=busy,
+        tasks=tasks,
+        speeds=[speeds[c] for c in range(workers)],
+    )
 
 
 def simulate_dynamic(
@@ -148,15 +182,19 @@ def simulate_dynamic(
     overhead: float = 0.0,
     fast_scale: Callable[[int], float] | None = None,
     slow_factor: Sequence[float] | None = None,
+    migrate: bool = False,
+    workers: int | None = None,
 ) -> SimResult:
-    """One shared queue in the given order (``imap_unordered``)."""
+    """One shared queue in the given order (``imap_unordered``), with
+    ``workers`` workers (default: one per core)."""
     return simulate(
         [costs],
         speeds,
-        [[0]] * len(speeds),
+        [[0]] * (len(speeds) if workers is None else workers),
         overhead,
         fast_scale,
         None if slow_factor is None else [slow_factor],
+        migrate,
     )
 
 

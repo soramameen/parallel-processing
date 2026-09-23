@@ -127,3 +127,10 @@ class TestProfilePull:
             graph, [1.0, 1.0, 0.5], [tasks], [[0]] * 3, fast_scale=[1.0, 1.0, 0.8]
         )
         assert (p.cliques, p.largest) == count_eppstein_cliques(graph)
+
+    def test_migrate_promotes_slow_worker(self) -> None:
+        graph, ordering, items = self._graph_and_items()
+        # worker 0 (fast) has almost nothing; worker 1 (slow) has the rest
+        queues: list[list[hetero.Task]] = [[[items[0]]], [[i] for i in items[1:]]]
+        p = hetero.profile_pull(graph, [1.0, 0.3], queues, [[0], [1]], migrate=True)
+        assert (p.cliques, p.largest) == count_eppstein_cliques(graph)

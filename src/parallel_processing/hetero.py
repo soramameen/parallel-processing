@@ -380,6 +380,7 @@ def profile_pull(
     fast_scale: list[float] | None = None,
     control_interval: float = 0.005,
     ordering: list[int] | None = None,
+    migrate: bool = False,
 ) -> HeteroProfile:
     """Count maximal cliques with the pull executor on emulated cores.
 
@@ -387,6 +388,12 @@ def profile_pull(
     ``fast_scale[k]``, when given, is the speed of every speed-1 core while
     ``k`` of them are still working; a control thread rewrites their quota
     as that count changes (the P-core clock dropping with load).
+
+    With ``migrate``, fast is a role, not a place: when a worker holding a
+    fast role runs out of tasks, the still-working slow worker with the
+    lowest index takes the role (its quota is lifted), which is what the
+    macOS scheduler does when it moves a runnable E-core thread onto an idle
+    P core. Without it, every worker keeps its speed (pinned).
     """
     start = time.perf_counter()
     if ordering is None:
@@ -427,26 +434,43 @@ def profile_pull(
             startup_s = time.perf_counter() - start
 
             stop = False
-            if fast_scale is not None:
-                # All workers are active from the start signal on.
-                for c in fast:
-                    groups.set_speed(groups.paths[c], fast_scale[len(fast)])
+            n_fast = len(fast)
+            holders = set(fast)  # workers currently running at fast speed
 
-                def control() -> None:
-                    current = len(fast)
-                    while not stop:
-                        k = sum(active[c] for c in fast)
-                        if k != current and k > 0:
-                            for c in fast:
-                                groups.set_speed(groups.paths[c], fast_scale[k])
-                            current = k
-                        time.sleep(control_interval)
+            def fast_speed(k: int) -> float:
+                return fast_scale[k] if fast_scale is not None else 1.0
 
-                controller = threading.Thread(target=control, daemon=True)
+            for c in holders:
+                groups.set_speed(groups.paths[c], fast_speed(n_fast))
+            for c in range(workers):
+                active[c] = 1  # workers raise it too; set now so the controller
+                # never mistakes a worker that has not started for a finished one
 
+            def control() -> None:
+                applied = n_fast
+                while not stop:
+                    changed = False
+                    if migrate:
+                        holders.intersection_update(
+                            c for c in range(workers) if active[c]
+                        )
+                        for c in range(workers):
+                            if len(holders) >= n_fast:
+                                break
+                            if active[c] and c not in holders:
+                                holders.add(c)
+                                changed = True
+                    k = sum(1 for c in holders if active[c])
+                    if k > 0 and (changed or (fast_scale is not None and k != applied)):
+                        for c in holders:
+                            groups.set_speed(groups.paths[c], fast_speed(k))
+                        applied = k
+                    time.sleep(control_interval)
+
+            controller = threading.Thread(target=control, daemon=True)
             start = time.perf_counter()
             go.set()
-            if fast_scale is not None:
+            if migrate or fast_scale is not None:
                 controller.start()
             for _ in range(workers):
                 slot, b, n_items, n_tasks, sub_count, sub_largest = results.get()

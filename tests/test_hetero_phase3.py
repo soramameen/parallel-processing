@@ -11,7 +11,7 @@ from parallel_processing import eppstein_parallel, hetero, hetero_phase3
 from parallel_processing.eppstein import degeneracy_ordering
 
 SCHEDULES = [
-    "block", "block16", "interleave", "lpt", "lpt-oracle", "static@0.43",
+    "block", "block16", "interleave", "reversed", "lpt", "lpt-oracle", "static@0.43",
     "static-oracle@0.26", "giants", "split", "split-giants",
 ]
 

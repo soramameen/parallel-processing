@@ -9,7 +9,8 @@ Linux per-vertex workload, and prints the Markdown tables used in
   efficiency, and both idle definitions, per (cores, r, strategy);
 - ``sim``: the simulator's makespan for the same runs and its error;
 - ``phase3``: the schedule comparison on emulated cores;
-- ``sweep``: simulator-only r sweeps, misestimated r, and non-constant r.
+- ``sweep``: simulator-only r sweeps, misestimated r, and non-constant r;
+- ``m4``: the M4 runs replayed in the simulator, pinned vs migrating.
 
 Every table takes the minimum compute over repeats (the repo's protocol)
 and drops runs whose host steal exceeds :data:`STEAL_LIMIT` of the CPU time
@@ -220,7 +221,8 @@ def print_phase3() -> None:
     groups: dict[str, list[Row]] = {}
     for r in rows:
         tag = r["tag"].split("-rep")[0]
-        key = f"{tag} {r['graph']} period={r['period_us']} fast_scale={r['fast_scale']}"
+        key = (f"{tag} {r['graph']} period={r['period_us']} "
+               f"fast_scale={r['fast_scale'] or '-'} migrate={r.get('migrate', '0')}")
         groups.setdefault(key, []).append(r)
     for key, group in groups.items():
         graph = group[0]["graph"]
@@ -341,12 +343,53 @@ def print_sweep() -> None:
     print(f"\n(total work {sum(costs.measured):.1f} s at full speed)\n")
 
 
+# M4 strategy-comparison session (artifacts/phase-profile.csv, 2026-07-21,
+# Chrome open): minimum compute over three runs and that run's busy sum.
+M4_MEASURED = {
+    (4, "block"): (33.27, 106.2),
+    (4, "reversed"): (32.73, 130.8),
+    (4, "interleave"): (36.69, 146.6),
+    (8, "block"): (25.85, 139.3),
+    (8, "reversed"): (28.54, 174.6),
+    (8, "interleave"): (24.73, 197.7),
+}
+M4_CLEAN_INTERLEAVE_W8 = 18.24  # the Chrome-closed rerun
+
+
+def print_m4() -> None:
+    """Replay the M4 runs in the simulator with the M4 per-vertex costs:
+    4 P + 6 E cores, workers placed on P first, pinned or migrating."""
+    w = sched_sim.Workload.from_csv("artifacts/workload-soc-sign-epinions.csv")
+    print(f"M4 per-vertex costs, total {sum(w.seconds):.1f} s on a P core; "
+          "cores 4 P + 6 E, contention ignored\n")
+    print("| workers | strategy | r | pinned | busy | migrating | busy "
+          "| M4 measured | busy |")
+    print("|---|---|---|---|---|---|---|---|---|")
+    for workers in (4, 8):
+        for strategy in ("block", "reversed", "interleave"):
+            costs = [w.cost(b) for b in hetero.make_batches(w.n, strategy, 64)]
+            for r in (0.26, 0.43):
+                slots = [1.0] * 4 + [r] * 6
+                pin = sched_sim.simulate_dynamic(costs, slots, workers=workers)
+                mig = sched_sim.simulate_dynamic(
+                    costs, slots, workers=workers, migrate=True
+                )
+                m, mb = M4_MEASURED[(workers, strategy)]
+                print(
+                    f"| {workers} | {strategy} | {r:g} | {pin.makespan:.1f} s "
+                    f"| {sum(pin.busy):.0f} s | {mig.makespan:.1f} s "
+                    f"| {sum(mig.busy):.0f} s | {m:.1f} s | {mb:.0f} s |"
+                )
+    print(f"\n(clean-session interleave w=8: {M4_CLEAN_INTERLEAVE_W8} s)\n")
+
+
 SECTIONS: dict[str, Callable[[], None]] = {
     "calibration": print_calibration,
     "phase1": print_phase1,
     "sim": print_sim,
     "phase3": print_phase3,
     "sweep": print_sweep,
+    "m4": print_m4,
 }
 
 

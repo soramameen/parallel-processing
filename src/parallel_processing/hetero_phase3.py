@@ -3,7 +3,8 @@
 Every schedule runs on the pull executor (:func:`hetero.profile_pull`), so
 they differ only in how tasks are formed and which core may take them:
 
-- ``block[K]`` / ``interleave``: the M4 batch shapes, one shared queue.
+- ``block[K]`` / ``reversed`` / ``interleave``: the M4 batch shapes, one
+  shared queue.
 - ``lpt``: single vertices in descending *predicted* cost, packed into tasks
   of bounded predicted cost, one shared queue. Needs no core speeds.
 - ``lpt-oracle``: the same ordered by *measured* cost (a best case for how
@@ -27,7 +28,10 @@ Usage::
 
     python -m parallel_processing.hetero_phase3 --graph G --workload CSV \
         --cores F,F,S,S --r 0.43 --schedules lpt,static-oracle@0.43 \
-        [--fast-scale 1,1,0.8] [--period 4000] [--repeat 3] [--tag T]
+        [--fast-scale 1,1,0.8] [--migrate] [--period 4000] [--repeat 3] [--tag T]
+
+``--migrate`` lets a slow worker take over a fast core once a fast worker
+runs out of tasks (see :func:`hetero.profile_pull`).
 """
 
 from __future__ import annotations
@@ -55,6 +59,7 @@ FIELDS = [
     "schedule",
     "period_us",
     "fast_scale",
+    "migrate",
     "run",
     "compute_s",
     "startup_s",
@@ -154,8 +159,8 @@ def build(
     if name.startswith("block"):
         size = int(name[len("block"):] or 64)
         return [[list(b) for b in hetero.make_batches(n, "block", size)]], shared
-    if name == "interleave":
-        return [[list(b) for b in hetero.make_batches(n, "interleave", 64)]], shared
+    if name in ("interleave", "reversed"):
+        return [[list(b) for b in hetero.make_batches(n, name, 64)]], shared
 
     if name.startswith("static"):
         base, r_hat = name.split("@")
@@ -218,6 +223,9 @@ def main(argv: list[str] | None = None) -> None:
     period = int(take("--period", str(hetero.DEFAULT_PERIOD_US)))
     repeat = int(take("--repeat", "3"))
     tag = take("--tag", "")
+    migrate = "--migrate" in args
+    if migrate:
+        args.remove("--migrate")
     if not hetero.cgroups_available():
         sys.exit(f"cgroup-v1 cpu controller not writable at {hetero.CGROUP_ROOT}")
 
@@ -241,7 +249,8 @@ def main(argv: list[str] | None = None) -> None:
                 queues, poll = plans[name]
                 steal = steal_seconds()
                 p = hetero.profile_pull(
-                    graph, speeds, queues, poll, period, fast_scale, ordering=ordering
+                    graph, speeds, queues, poll, period, fast_scale,
+                    ordering=ordering, migrate=migrate,
                 )
                 steal = steal_seconds() - steal
                 if expected is None:
@@ -261,6 +270,7 @@ def main(argv: list[str] | None = None) -> None:
                         "schedule": name,
                         "period_us": period,
                         "fast_scale": fs,
+                        "migrate": int(migrate),
                         "run": run_idx,
                         "compute_s": f"{p.compute_s:.4f}",
                         "startup_s": f"{p.startup_s:.4f}",
@@ -276,7 +286,8 @@ def main(argv: list[str] | None = None) -> None:
                 )
                 handle.flush()
                 print(
-                    f"{graph_path.name:24} run={run_idx} {spec} r={r} {name:18} "
+                    f"{graph_path.name:24} run={run_idx} {spec} r={r} "
+                    f"{'mig' if migrate else 'pin'} {name:18} "
                     f"compute={p.compute_s:8.3f}s idle={plain:5.1f}% "
                     f"idle_w={weighted:5.1f}% busy="
                     f"{'/'.join(f'{b:.1f}' for b in p.busy)} "

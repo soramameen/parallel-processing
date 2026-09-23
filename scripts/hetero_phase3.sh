@@ -4,6 +4,8 @@
 # 3b: the same with fast cores slowing as more of them run (H3).
 # 3c: quota period sensitivity of the dynamic schedules.
 # 3d: ca-HepPh, where one vertex carries 13% of the work (giants, splitting).
+# 3e: OS-style migration (a slow worker takes over a fast core that a
+#     finished worker frees) against pinned workers (hypothesis H5).
 set -eu
 SOC=data/soc-sign-epinions.txt.gz
 HEP=data/ca-HepPh.txt.gz
@@ -43,4 +45,15 @@ for r in 0.26 0.43; do
 done
 $P3 --graph $HEP --workload $W/workload-ca-HepPh.csv --cores F,F,F,F --r 1 \
   --schedules block,lpt,split --repeat 5 --tag 3d
+echo "=== 3e $(date -u +%H:%M:%S)"
+for rep in 1 2; do
+  for r in 0.43 0.26; do
+    $P3 --graph $SOC --workload $W/workload-soc-sign-epinions.csv --cores F,F,S,S --r $r \
+      --migrate --schedules block,reversed,interleave,lpt,static-oracle@$r \
+      --repeat 1 --tag 3e-rep$rep
+    $P3 --graph $SOC --workload $W/workload-soc-sign-epinions.csv --cores F,F,S,S --r $r \
+      --schedules block,reversed,interleave,lpt,static-oracle@$r \
+      --repeat 1 --tag 3e-rep$rep
+  done
+done
 echo "=== done $(date -u +%H:%M:%S)"
