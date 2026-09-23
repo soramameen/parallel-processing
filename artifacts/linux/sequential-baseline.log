@@ -16,3 +16,31 @@ edges:    711,210
 load time: 2.042 s
 degeneracy: 121
 ordering time: 1.314 s
+maximal cliques: 22,226,173
+largest clique:  94
+enumeration time: 202.926 s
+expected (Table 1): 22,226,172 (diff +1)
+cpu  27990 0 2064 264881 65 0 182 489 0 0
+dataset: data/soc-sign-epinions.txt.gz
+vertices: 131,828
+edges:    711,210
+load time: 1.423 s
+degeneracy: 121
+ordering time: 1.105 s
+maximal cliques: 22,226,173
+largest clique:  94
+enumeration time: 202.639 s
+expected (Table 1): 22,226,172 (diff +1)
+cpu  47631 0 3029 326171 65 0 223 714 0 0
+dataset: data/soc-sign-epinions.txt.gz
+vertices: 131,828
+edges:    711,210
+load time: 1.436 s
+degeneracy: 121
+ordering time: 1.107 s
+maximal cliques: 22,226,173
+largest clique:  94
+enumeration time: 203.860 s
+expected (Table 1): 22,226,172 (diff +1)
+cpu  67527 0 4067 387598 65 0 272 968 0 0
+Wed Sep 23 00:26:26 UTC 2026

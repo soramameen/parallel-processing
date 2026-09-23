@@ -10,9 +10,10 @@ predictor for cost-model scheduling experiments.
 
 Usage::
 
-    python -m parallel_processing.workload_profile [path-to-edge-list]
+    python -m parallel_processing.workload_profile [--out-dir DIR] [path-to-edge-list]
 
-Writes ``artifacts/workload-<dataset>.csv`` and prints a summary.
+Writes ``<DIR>/workload-<dataset>.csv`` (``DIR`` defaults to ``artifacts``,
+where the M4 profiles live) and prints a summary.
 """
 
 from __future__ import annotations
@@ -91,7 +92,7 @@ def _time_histogram(times: list[float]) -> None:
         print(f"  {label:>15}: {count:>8,} {bar}")
 
 
-def run(path: str | Path) -> None:
+def run(path: str | Path, out_dir: str | Path = "artifacts") -> None:
     """Profile ``path`` per outer vertex, write the CSV, print the summary."""
     path = Path(path)
     print(f"dataset: {path}")
@@ -101,8 +102,8 @@ def run(path: str | Path) -> None:
     rows = profile(graph)
     wall = time.perf_counter() - wall_start
 
-    out = Path("artifacts") / f"workload-{path.name.split('.')[0]}.csv"
-    out.parent.mkdir(exist_ok=True)
+    out = Path(out_dir) / f"workload-{path.name.split('.')[0]}.csv"
+    out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", newline="") as handle:
         writer = csv.writer(handle)
         writer.writerow(["pos", "vertex", "degree", "p_size", "cliques", "seconds"])
@@ -121,8 +122,13 @@ def run(path: str | Path) -> None:
 
 def main(argv: list[str] | None = None) -> None:
     """CLI entry point; ``argv`` defaults to ``sys.argv[1:]``."""
-    args = sys.argv[1:] if argv is None else argv
-    run(args[0] if args else DEFAULT_DATASET)
+    args = list(sys.argv[1:] if argv is None else argv)
+    out_dir = "artifacts"
+    if "--out-dir" in args:
+        i = args.index("--out-dir")
+        out_dir = args[i + 1]
+        del args[i : i + 2]
+    run(args[0] if args else DEFAULT_DATASET, out_dir)
 
 
 if __name__ == "__main__":

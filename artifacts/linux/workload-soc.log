@@ -1,0 +1,24 @@
+dataset: data/soc-sign-epinions.txt.gz
+vertices: 131,828
+total cliques (sum over vertices): 22,226,173
+summed subproblem time: 197.654 s (wall 199.819 s)
+time concentration (n=131,828, total=197.654):
+  heaviest vertex :   0.88%
+  top   0.1% (    131 vertices):  44.97%
+  top   1.0% (  1,318 vertices):  94.47%
+  top  10.0% ( 13,182 vertices):  99.70%
+cliques concentration (n=131,828, total=22,226,173.000):
+  heaviest vertex :   1.01%
+  top   0.1% (    131 vertices):  47.28%
+  top   1.0% (  1,318 vertices):  94.07%
+  top  10.0% ( 13,182 vertices):  99.15%
+per-vertex time histogram (log bins):
+           < 1 µs:    1,883 #
+    1e-6 - 1e-5 s:  102,746 ##################################################
+    1e-5 - 1e-4 s:   17,791 #########
+    1e-4 - 1e-3 s:    5,655 ###
+    1e-3 - 1e-2 s:    2,432 #
+    1e-2 - 1e-1 s:      883 #
+     1e-1 - 1e0 s:      427 #
+      1e0 - 1e1 s:       11 #
+csv: artifacts/linux/workload-soc-sign-epinions.csv

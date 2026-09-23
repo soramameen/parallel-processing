@@ -28,10 +28,13 @@ Requires root and a cgroup-v1 ``cpu`` controller at :data:`CGROUP_ROOT`.
 from __future__ import annotations
 
 import multiprocessing
+import multiprocessing.synchronize
 import os
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from parallel_processing import eppstein_parallel
 from parallel_processing.eppstein import Graph, degeneracy_ordering
@@ -40,9 +43,12 @@ CGROUP_ROOT = Path("/sys/fs/cgroup/cpu")
 GROUP_PREFIX = "pp"
 
 # 100 ms (the kernel default) makes a 0.43 core run 43 ms then freeze 57 ms,
-# coarse enough to distort short batches; 10 ms is the working default until
-# the calibration run says otherwise.
-DEFAULT_PERIOD_US = 10_000
+# coarse enough to distort short batches. Calibration on soc-sign-epinions
+# (artifacts/linux/calibration.log) put 4 ms as close to the set speed as
+# 100 ms (graph tasks at 0.97-0.98 of it, 10 ms at 0.92-0.97), and 4 ms is
+# the shortest period that still expresses speed 0.26 above the 1 ms quota
+# floor, so frozen spells stay under 3 ms.
+DEFAULT_PERIOD_US = 4_000
 MIN_QUOTA_US = 1_000
 
 STRATEGIES = ("block", "reversed", "interleave")
@@ -265,6 +271,207 @@ def profile_hetero(
         cliques=count,
         largest=largest,
         batches=len(batches),
+        busy=busy,
+        vertices=vertices,
+        tasks=tasks,
+    )
+
+
+# --- Pull executor -----------------------------------------------------------
+#
+# Pool/imap_unordered can only express "one shared queue in a fixed order".
+# The schedules compared in Phase 3 also need per-core lists (static LPT),
+# queues that only some cores serve (heavy tasks to fast cores first), and
+# tasks that are one first-level branch of a heavy vertex. The pull executor
+# gives each worker an ordered list of shared task lists; a worker takes the
+# head of the first non-empty one through a shared cursor, so no parent
+# dispatch sits between tasks.
+
+# A task item is an outer-vertex position, or (position, j): the j-th
+# first-level branch of that vertex's subproblem.
+Item = int | tuple[int, int]
+Task = list[Item]
+
+
+def split_root(
+    graph: Graph, ordering: list[int], position: dict[int, int], i: int
+) -> tuple[set[int], set[int], list[int]] | None:
+    """(P, X, branches) of outer vertex ``i``'s root call, or None when the
+    vertex is itself a maximal clique (P and X both empty).
+
+    The pivot and branch order are made deterministic (sorted, ties to the
+    smallest vertex) so every process agrees on what branch ``j`` is.
+    """
+    v = ordering[i]
+    p = {w for w in graph[v] if position[w] > i}
+    x = {w for w in graph[v] if position[w] < i}
+    if not p and not x:
+        return None
+    pivot = max(sorted(p | x), key=lambda u: len(p & graph[u]))
+    return p, x, sorted(p - graph[pivot])
+
+
+def _count_item(item: Item) -> tuple[int, int]:
+    if isinstance(item, int):
+        return eppstein_parallel._count_batch([item])
+    i, j = item
+    graph = eppstein_parallel._graph
+    ordering, position = eppstein_parallel._ordering, eppstein_parallel._position
+    root = split_root(graph, ordering, position, i)
+    assert root is not None, f"vertex {i} has no branches"
+    p, x, branches = root
+    for v in branches[:j]:  # the root loop moves earlier branches from P to X
+        p.discard(v)
+        x.add(v)
+    v = branches[j]
+    return eppstein_parallel._count_pivot(p & graph[v], x & graph[v], 2)
+
+
+def _pull_worker(
+    slot: int,
+    graph: Graph,
+    ordering: list[int],
+    queues: list[list[Task]],
+    poll: list[int],
+    cursors: Any,  # ctx.Array("i"): one cursor per queue, with a lock
+    active: Any,  # ctx.Array("b", lock=False): 1 while that worker still runs
+    group: str,
+    ready: multiprocessing.Queue[int],
+    go: multiprocessing.synchronize.Event,
+    results: multiprocessing.Queue[tuple[int, float, int, int, int, int]],
+) -> None:
+    eppstein_parallel._init_worker(graph, ordering)
+    os.sched_setaffinity(0, {slot})
+    Path(group, "cgroup.procs").write_text(str(os.getpid()))
+    ready.put(slot)
+    go.wait()
+    busy = 0.0
+    items = tasks = count = largest = 0
+    active[slot] = 1
+    while True:
+        task = None
+        with cursors.get_lock():
+            for q in poll:
+                k = cursors[q]
+                if k < len(queues[q]):
+                    cursors[q] = k + 1
+                    task = queues[q][k]
+                    break
+        if task is None:
+            break
+        start = time.perf_counter()
+        for item in task:
+            sub_count, sub_largest = _count_item(item)
+            count += sub_count
+            largest = max(largest, sub_largest)
+        busy += time.perf_counter() - start
+        items += len(task)
+        tasks += 1
+    active[slot] = 0
+    results.put((slot, busy, items, tasks, count, largest))
+
+
+def profile_pull(
+    graph: Graph,
+    speeds: list[float],
+    queues: list[list[Task]],
+    poll: list[list[int]],
+    period_us: int = DEFAULT_PERIOD_US,
+    fast_scale: list[float] | None = None,
+    control_interval: float = 0.005,
+    ordering: list[int] | None = None,
+) -> HeteroProfile:
+    """Count maximal cliques with the pull executor on emulated cores.
+
+    ``poll[c]`` lists, in priority order, the queues core ``c`` serves.
+    ``fast_scale[k]``, when given, is the speed of every speed-1 core while
+    ``k`` of them are still working; a control thread rewrites their quota
+    as that count changes (the P-core clock dropping with load).
+    """
+    start = time.perf_counter()
+    if ordering is None:
+        ordering, _ = degeneracy_ordering(graph)
+    ordering_s = time.perf_counter() - start
+
+    workers = len(speeds)
+    fast = [i for i, s in enumerate(speeds) if s >= 1]
+    ctx = multiprocessing.get_context("spawn")
+    cursors = ctx.Array("i", len(queues))
+    active = ctx.Array("b", workers, lock=False)
+    ready: multiprocessing.Queue[int] = ctx.Queue()
+    results: multiprocessing.Queue[tuple[int, float, int, int, int, int]] = ctx.Queue()
+    go = ctx.Event()
+
+    busy = [0.0] * workers
+    vertices = [0] * workers
+    tasks = [0] * workers
+    count = largest = 0
+    with CoreGroups(speeds, period_us) as groups:
+        start = time.perf_counter()
+        procs = [
+            ctx.Process(
+                target=_pull_worker,
+                args=(
+                    c, graph, ordering, queues, poll[c], cursors, active,
+                    str(groups.paths[c]), ready, go, results,
+                ),
+            )
+            for c in range(workers)
+        ]
+        for proc in procs:
+            proc.start()
+        try:
+            for _ in range(workers):
+                ready.get(timeout=120)
+            groups.wait_populated()
+            startup_s = time.perf_counter() - start
+
+            stop = False
+            if fast_scale is not None:
+                # All workers are active from the start signal on.
+                for c in fast:
+                    groups.set_speed(groups.paths[c], fast_scale[len(fast)])
+
+                def control() -> None:
+                    current = len(fast)
+                    while not stop:
+                        k = sum(active[c] for c in fast)
+                        if k != current and k > 0:
+                            for c in fast:
+                                groups.set_speed(groups.paths[c], fast_scale[k])
+                            current = k
+                        time.sleep(control_interval)
+
+                controller = threading.Thread(target=control, daemon=True)
+
+            start = time.perf_counter()
+            go.set()
+            if fast_scale is not None:
+                controller.start()
+            for _ in range(workers):
+                slot, b, n_items, n_tasks, sub_count, sub_largest = results.get()
+                busy[slot] = b
+                vertices[slot] = n_items
+                tasks[slot] = n_tasks
+                count += sub_count
+                largest = max(largest, sub_largest)
+            compute_s = time.perf_counter() - start
+            stop = True
+        finally:
+            for proc in procs:
+                proc.join(timeout=10)
+                if proc.is_alive():
+                    proc.terminate()
+                    proc.join()
+
+    return HeteroProfile(
+        speeds=speeds,
+        ordering_s=ordering_s,
+        startup_s=startup_s,
+        compute_s=compute_s,
+        cliques=count,
+        largest=largest,
+        batches=sum(len(q) for q in queues),
         busy=busy,
         vertices=vertices,
         tasks=tasks,

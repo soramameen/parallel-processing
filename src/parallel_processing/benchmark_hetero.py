@@ -9,7 +9,7 @@ Two subcommands::
     python -m parallel_processing.benchmark_hetero run \
         --cores "F,F,F,F;F,F,S,S" [--r 0.43,0.26] \
         [--strategy block,interleave] [--batch 64] [--period 10000] \
-        [--repeat 3] edge-list ...
+        [--repeat 3] [--tag LABEL] edge-list ...
 
 ``calibrate`` checks that a core capped at speed s really runs at s: it
 times a pure integer loop and three slices of the graph's outer loop (the
@@ -41,6 +41,7 @@ CALIBRATION_CSV = OUT_DIR / "hetero-calibration.csv"
 
 RUN_FIELDS = [
     "timestamp",
+    "tag",
     "graph",
     "cores",
     "speeds",
@@ -85,14 +86,16 @@ def _calibration_slices(n: int, heaviest: int) -> dict[str, range | list[int]]:
     """Outer-loop slices of different weight, by position in the ordering.
 
     The heavy vertices cluster at the tail of the degeneracy ordering
-    (artifacts/workload-*.csv), so a head block is light and a block just
-    before the tail is mid-weight.
+    (artifacts/workload-*.csv). On soc-sign-epinions the head 91% is ~0.3 s
+    of tiny subproblems (|P| <= 13) on the M4 and a 2,000-vertex block at
+    95% is ~0.5 s of mid-size ones (|P| <= 48), so each slice runs long
+    enough to span many quota periods.
     """
     return {
         "loop": [],
         "heavy": [heaviest],
-        "mid": range(int(n * 0.90), int(n * 0.90) + 2000),
-        "light": range(0, min(n, 50_000)),
+        "mid": range(int(n * 0.95), min(n, int(n * 0.95) + 2000)),
+        "light": range(0, int(n * 0.91)),
     }
 
 
@@ -210,6 +213,7 @@ def run(args: list[str]) -> None:
     batch = int(take("--batch", "64"))
     period = int(take("--period", str(hetero.DEFAULT_PERIOD_US)))
     repeat = int(take("--repeat", "3"))
+    tag = take("--tag", "")
     if not args:
         sys.exit("give at least one edge list")
     for s in strategies:
@@ -249,6 +253,7 @@ def run(args: list[str]) -> None:
                         writer.writerow(
                             {
                                 "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                                "tag": tag,
                                 "graph": path.name,
                                 "cores": spec,
                                 "speeds": ";".join(f"{s:g}" for s in speeds),

@@ -1,0 +1,13 @@
+calibration on soc-sign-epinions.txt.gz: slices {k: len} = {'loop': 0, 'heavy': 1, 'mid': 2000, 'light': 119963}
+period=  4000us loop  t(1)= 0.736s  s=1.0  eff=1.000  s=0.75 eff=0.786  s=0.5  eff=0.524  s=0.43 eff=0.446  s=0.26 eff=0.267
+period=  4000us heavy t(1)= 0.685s  s=1.0  eff=1.000  s=0.75 eff=0.748  s=0.5  eff=0.493  s=0.43 eff=0.420  s=0.26 eff=0.244
+period=  4000us mid   t(1)= 0.973s  s=1.0  eff=1.000  s=0.75 eff=0.743  s=0.5  eff=0.488  s=0.43 eff=0.420  s=0.26 eff=0.242
+period=  4000us light t(1)= 0.886s  s=1.0  eff=1.000  s=0.75 eff=0.743  s=0.5  eff=0.502  s=0.43 eff=0.417  s=0.26 eff=0.241
+period= 10000us loop  t(1)= 0.707s  s=1.0  eff=1.000  s=0.75 eff=0.753  s=0.5  eff=0.498  s=0.43 eff=0.429  s=0.26 eff=0.255
+period= 10000us heavy t(1)= 0.681s  s=1.0  eff=1.000  s=0.75 eff=0.742  s=0.5  eff=0.480  s=0.43 eff=0.416  s=0.26 eff=0.246
+period= 10000us mid   t(1)= 0.948s  s=1.0  eff=1.000  s=0.75 eff=0.742  s=0.5  eff=0.478  s=0.43 eff=0.408  s=0.26 eff=0.241
+period= 10000us light t(1)= 0.831s  s=1.0  eff=1.000  s=0.75 eff=0.729  s=0.5  eff=0.468  s=0.43 eff=0.397  s=0.26 eff=0.235
+period=100000us loop  t(1)= 0.701s  s=1.0  eff=1.000  s=0.75 eff=0.783  s=0.5  eff=0.534  s=0.43 eff=0.449  s=0.26 eff=0.271
+period=100000us heavy t(1)= 0.674s  s=1.0  eff=1.000  s=0.75 eff=0.755  s=0.5  eff=0.502  s=0.43 eff=0.442  s=0.26 eff=0.258
+period=100000us mid   t(1)= 0.955s  s=1.0  eff=1.000  s=0.75 eff=0.766  s=0.5  eff=0.494  s=0.43 eff=0.431  s=0.26 eff=0.257
+period=100000us light t(1)= 0.829s  s=1.0  eff=1.000  s=0.75 eff=0.741  s=0.5  eff=0.489  s=0.43 eff=0.415  s=0.26 eff=0.250
