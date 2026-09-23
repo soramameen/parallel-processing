@@ -1,7 +1,8 @@
 """Eppstein with and without clique early termination, side by side.
 
 Runs :func:`eppstein.count_eppstein_cliques` and
-:func:`eppstein_et.count_eppstein_cliques_et` alternately in one process,
+:func:`eppstein_et.count_eppstein_cliques_et` (the test at every call, and
+at the outer vertices only) alternately in one process,
 ``repeat`` times each, and reports the minimum of each (the repo's
 protocol against slow spells of the host). Both must agree on the clique
 count and the largest clique. Covers the synthetic suite of
@@ -34,14 +35,20 @@ def _time(
     return time.perf_counter() - start, count, largest
 
 
+def _root_only(graph: Graph) -> tuple[int, int]:
+    return count_eppstein_cliques_et(graph, deep=False)
+
+
 def run(name: str, graph: Graph, repeat: int) -> None:
     plain: list[float] = []
     early: list[float] = []
+    root: list[float] = []
     result = None
     for _ in range(repeat):
         for fn, times in (
             (count_eppstein_cliques, plain),
             (count_eppstein_cliques_et, early),
+            (_root_only, root),
         ):
             t, count, largest = _time(fn, graph)
             if result is None:
@@ -51,8 +58,9 @@ def run(name: str, graph: Graph, repeat: int) -> None:
     assert result is not None
     print(
         f"{name:26} cliques={result[0]:>11,} largest={result[1]:>3} "
-        f"eppstein={min(plain):8.3f}s early-term={min(early):8.3f}s "
-        f"speedup={min(plain) / min(early):5.2f}x",
+        f"eppstein={min(plain):8.3f}s every-call={min(early):8.3f}s "
+        f"({min(plain) / min(early):4.2f}x) root-only={min(root):8.3f}s "
+        f"({min(plain) / min(root):4.2f}x)",
         flush=True,
     )
 

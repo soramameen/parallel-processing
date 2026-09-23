@@ -74,3 +74,12 @@ class TestEarlyTermination:
             for i, v in enumerate(ordering)
         )
         assert total == count_eppstein_cliques(graph)[0]
+
+    @pytest.mark.parametrize("seed", range(6))
+    def test_root_only_matches(self, seed: int) -> None:
+        shifted = random_graph(40, 0.5, seed).items()
+        graph = clique_with_pendants(12, 3) | {
+            v + 100: {w + 100 for w in nbrs} for v, nbrs in shifted
+        }
+        expected = count_eppstein_cliques(graph)
+        assert count_eppstein_cliques_et(graph, deep=False) == expected

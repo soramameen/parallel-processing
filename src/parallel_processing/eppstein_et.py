@@ -46,9 +46,14 @@ def eppstein_cliques_et(graph: Graph) -> list[frozenset[int]]:
     return _sort_cliques(result)
 
 
-def count_eppstein_cliques_et(graph: Graph) -> tuple[int, int]:
+def count_eppstein_cliques_et(graph: Graph, deep: bool = True) -> tuple[int, int]:
     """Count maximal cliques; return (count, largest). Same result as
-    :func:`eppstein.count_eppstein_cliques`."""
+    :func:`eppstein.count_eppstein_cliques`.
+
+    With ``deep=False`` the clique test runs only on the outer vertices'
+    subproblems (the roots), where ca-HepPh's heavy vertex sits, and the
+    search below them is the plain one; that keeps the per-call gate off
+    graphs where the test never fires."""
     count = 0
     largest = 0
 
@@ -58,7 +63,7 @@ def count_eppstein_cliques_et(graph: Graph) -> tuple[int, int]:
         if len(q) > largest:
             largest = len(q)
 
-    _bron_kerbosch_degeneracy_et(graph, report)
+    _bron_kerbosch_degeneracy_et(graph, report, deep)
     return count, largest
 
 
@@ -81,8 +86,13 @@ def _search(
     p: set[int],
     x: set[int],
     report: Callable[[list[int]], None],
+    test: bool = True,
+    deep: bool = True,
 ) -> None:
-    """The recursive search below one outer vertex (``r`` holds it)."""
+    """The recursive search below one outer vertex (``r`` holds it).
+
+    ``test`` says whether this call runs the clique test, ``deep`` whether
+    the calls below it do."""
     if not p and not x:
         report(r)
         return
@@ -92,7 +102,8 @@ def _search(
     # that pre-check is one intersection, so the full test (every u in P
     # scoring |P| - 1) runs only on the rare clique-shaped candidates.
     if (
-        size > 1
+        test
+        and size > 1
         and len(p & graph[pivot]) == size - 1
         and all(len(p & graph[u]) == size - 1 for u in p)
     ):
@@ -105,14 +116,14 @@ def _search(
     for v in list(p - graph[pivot]):
         neighbours = graph[v]
         r.append(v)
-        _search(graph, r, p & neighbours, x & neighbours, report)
+        _search(graph, r, p & neighbours, x & neighbours, report, deep, deep)
         r.pop()
         p.discard(v)
         x.add(v)
 
 
 def _bron_kerbosch_degeneracy_et(
-    graph: Graph, report: Callable[[list[int]], None]
+    graph: Graph, report: Callable[[list[int]], None], deep: bool = True
 ) -> None:
     sys.setrecursionlimit(max(sys.getrecursionlimit(), len(graph) + 1000))
 
@@ -125,5 +136,5 @@ def _bron_kerbosch_degeneracy_et(
         p = {w for w in graph[v] if position[w] > pos}
         x = {w for w in graph[v] if position[w] < pos}
         r.append(v)
-        _search(graph, r, p, x, report)
+        _search(graph, r, p, x, report, True, deep)
         r.pop()
