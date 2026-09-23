@@ -1,0 +1,4 @@
+timestamp,tag,graph,cores,speeds,r,strategy,batch,period_us,run,ordering_s,startup_s,compute_s,cliques,batches,busy,vertices,tasks,idle_pct,idle_weighted_pct,steal_s
+2026-09-23T00:47:31,phase1-rep1,soc-sign-epinions.txt.gz,F,1,,block,64,4000,0,1.1245,0.6353,199.3917,22226173,2060,199.3059,131828,2060,0.04,0.04,1.75
+2026-09-23T00:48:43,phase1-rep1,soc-sign-epinions.txt.gz,"F,F,F,F",1;1;1;1,,block,64,4000,0,1.1402,4.3350,64.8823,22226173,2060,64.8432;45.4399;40.6809;49.4903,30144;31808;31924;37952,471;497;499;593,22.76,22.76,1.73
+2026-09-23T00:49:38,phase1-rep1,soc-sign-epinions.txt.gz,"F,F,F,F",1;1;1;1,,interleave,64,4000,0,1.1791,2.8603,51.1360,22226173,2060,50.8183;50.7764;50.7896;50.8573,33980;32381;32636;32831,531;506;510;513,0.64,0.64,2.12

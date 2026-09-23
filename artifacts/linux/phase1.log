@@ -1,0 +1,4 @@
+=== repeat 1 00:44:08
+soc-sign-epinions.txt.gz   run=0 cores=F         r=-    block      compute= 199.392s idle=  0.0% idle_w=  0.0% busy=199.3 steal=1.75s cliques=22,226,173
+soc-sign-epinions.txt.gz   run=0 cores=F,F,F,F   r=-    block      compute=  64.882s idle= 22.8% idle_w= 22.8% busy=64.8/45.4/40.7/49.5 steal=1.73s cliques=22,226,173
+soc-sign-epinions.txt.gz   run=0 cores=F,F,F,F   r=-    interleave compute=  51.136s idle=  0.6% idle_w=  0.6% busy=50.8/50.8/50.8/50.9 steal=2.12s cliques=22,226,173
