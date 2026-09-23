@@ -50,3 +50,176 @@ predictor: log t = -11.306 + 0.0949*|P|
 soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin interleave         compute=  90.695s idle=  0.0% idle_w=  0.0% busy=90.7/90.7/90.7/90.7 tasks=2060 steal=3.80s
 soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin lpt                compute=  88.859s idle=  0.9% idle_w=  1.0% busy=87.8/87.8/88.9/87.8 tasks=289 steal=4.00s
 soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.43 compute=  96.278s idle=  8.8% idle_w=  5.7% busy=94.4/96.3/80.2/80.3 tasks=2062 steal=4.92s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.53 compute=  92.661s idle=  2.7% idle_w=  3.1% busy=89.3/88.9/89.9/92.7 tasks=2062 steal=4.99s
+=== 3c 03:30:32
+predictor: log t = -11.306 + 0.0949*|P|
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin block              compute=  94.983s idle= 20.5% idle_w= 21.2% busy=58.8/88.9/59.3/95.0 tasks=2060 steal=4.59s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin lpt                compute=  75.863s idle=  1.8% idle_w=  2.3% busy=73.6/73.6/75.9/74.9 tasks=289 steal=3.36s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.43 compute=  77.295s idle=  2.2% idle_w=  3.0% busy=74.0/74.2/77.3/76.9 tasks=2062 steal=3.06s
+predictor: log t = -11.306 + 0.0949*|P|
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin block              compute=  91.593s idle= 18.5% idle_w= 16.9% busy=91.6/65.0/62.5/79.7 tasks=2060 steal=2.15s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin lpt                compute=  77.117s idle=  1.5% idle_w=  1.9% busy=75.1/75.1/76.7/77.1 tasks=289 steal=3.08s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.43 compute=  77.267s idle=  1.6% idle_w=  1.9% busy=75.4/75.6/77.3/75.9 tasks=2062 steal=3.72s
+predictor: log t = -11.306 + 0.0949*|P|
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin block              compute=  96.348s idle= 20.6% idle_w= 21.4% busy=90.3/59.1/60.1/96.3 tasks=2060 steal=3.66s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin lpt                compute=  76.186s idle=  0.8% idle_w=  1.0% busy=75.0/75.0/76.2/76.2 tasks=289 steal=4.10s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.43 compute=  79.298s idle=  3.4% idle_w=  4.7% busy=73.5/74.4/79.3/79.2 tasks=2062 steal=3.15s
+predictor: log t = -11.306 + 0.0949*|P|
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin block              compute=  91.962s idle= 17.8% idle_w= 17.4% busy=92.0/61.3/77.1/72.0 tasks=2060 steal=2.87s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin lpt                compute=  76.732s idle=  0.4% idle_w=  0.5% busy=76.3/76.3/76.7/76.3 tasks=289 steal=3.21s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.43 compute=  78.854s idle=  3.0% idle_w=  3.7% busy=74.7/75.5/78.9/77.1 tasks=2062 steal=3.28s
+=== 3d 03:47:46
+predictor: log t = -10.808 + 0.0348*|P|
+ca-HepPh.txt.gz          run=0 F r=1.0 pin block              compute=   1.261s idle=  0.2% idle_w=  0.2% busy=1.3 tasks=188 steal=0.05s
+ca-HepPh.txt.gz          run=1 F r=1.0 pin block              compute=   1.240s idle=  0.2% idle_w=  0.2% busy=1.2 tasks=188 steal=0.02s
+ca-HepPh.txt.gz          run=2 F r=1.0 pin block              compute=   1.239s idle=  0.2% idle_w=  0.2% busy=1.2 tasks=188 steal=0.03s
+ca-HepPh.txt.gz          run=3 F r=1.0 pin block              compute=   1.229s idle=  0.2% idle_w=  0.2% busy=1.2 tasks=188 steal=0.02s
+ca-HepPh.txt.gz          run=4 F r=1.0 pin block              compute=   1.221s idle=  0.2% idle_w=  0.2% busy=1.2 tasks=188 steal=0.01s
+predictor: log t = -10.808 + 0.0348*|P|
+ca-HepPh.txt.gz          run=0 F,F,S,S r=0.26 pin block              compute=   0.838s idle= 26.0% idle_w= 36.9% busy=0.5/0.5/0.7/0.8 tasks=188 steal=0.05s
+ca-HepPh.txt.gz          run=0 F,F,S,S r=0.26 pin interleave         compute=   1.007s idle= 33.2% idle_w= 39.7% busy=0.6/0.6/0.6/1.0 tasks=188 steal=0.08s
+ca-HepPh.txt.gz          run=0 F,F,S,S r=0.26 pin lpt                compute=   0.761s idle= 15.7% idle_w= 18.6% busy=0.6/0.6/0.8/0.6 tasks=130 steal=0.11s
+ca-HepPh.txt.gz          run=0 F,F,S,S r=0.26 pin lpt-oracle         compute=   0.601s idle=  1.8% idle_w=  2.1% busy=0.6/0.6/0.6/0.6 tasks=255 steal=0.05s
+ca-HepPh.txt.gz          run=0 F,F,S,S r=0.26 pin giants             compute=   0.674s idle=  7.6% idle_w=  9.8% busy=0.6/0.6/0.7/0.6 tasks=130 steal=0.04s
+ca-HepPh.txt.gz          run=0 F,F,S,S r=0.26 pin split              compute=   0.898s idle= 27.1% idle_w= 34.2% busy=0.5/0.5/0.6/0.9 tasks=130 steal=0.08s
+ca-HepPh.txt.gz          run=0 F,F,S,S r=0.26 pin split-giants       compute=   0.724s idle=  8.4% idle_w= 10.2% busy=0.6/0.6/0.7/0.7 tasks=130 steal=0.04s
+ca-HepPh.txt.gz          run=0 F,F,S,S r=0.26 pin static-oracle@0.26 compute=   0.696s idle= 11.6% idle_w= 15.4% busy=0.5/0.6/0.7/0.6 tasks=190 steal=0.09s
+ca-HepPh.txt.gz          run=1 F,F,S,S r=0.26 pin block              compute=   0.821s idle= 31.5% idle_w= 37.7% busy=0.5/0.5/0.5/0.8 tasks=188 steal=0.02s
+ca-HepPh.txt.gz          run=1 F,F,S,S r=0.26 pin interleave         compute=   0.619s idle=  5.3% idle_w=  6.1% busy=0.6/0.6/0.6/0.6 tasks=188 steal=0.03s
+ca-HepPh.txt.gz          run=1 F,F,S,S r=0.26 pin lpt                compute=   0.762s idle= 20.2% idle_w= 24.2% busy=0.6/0.6/0.8/0.6 tasks=130 steal=0.07s
+ca-HepPh.txt.gz          run=1 F,F,S,S r=0.26 pin lpt-oracle         compute=   0.586s idle=  1.4% idle_w=  0.9% busy=0.6/0.6/0.6/0.6 tasks=255 steal=0.05s
+ca-HepPh.txt.gz          run=1 F,F,S,S r=0.26 pin giants             compute=   0.656s idle=  4.1% idle_w=  5.0% busy=0.6/0.6/0.6/0.6 tasks=130 steal=0.03s
+ca-HepPh.txt.gz          run=1 F,F,S,S r=0.26 pin split              compute=   0.660s idle=  9.5% idle_w= 11.7% busy=0.6/0.6/0.7/0.6 tasks=130 steal=0.02s
+ca-HepPh.txt.gz          run=1 F,F,S,S r=0.26 pin split-giants       compute=   0.776s idle= 14.4% idle_w= 20.9% busy=0.6/0.6/0.7/0.8 tasks=130 steal=0.02s
+ca-HepPh.txt.gz          run=1 F,F,S,S r=0.26 pin static-oracle@0.26 compute=   0.837s idle= 18.6% idle_w= 26.7% busy=0.6/0.6/0.8/0.8 tasks=190 steal=0.02s
+ca-HepPh.txt.gz          run=2 F,F,S,S r=0.26 pin block              compute=   1.167s idle= 42.9% idle_w= 51.8% busy=0.5/0.5/0.5/1.2 tasks=188 steal=0.05s
+ca-HepPh.txt.gz          run=2 F,F,S,S r=0.26 pin interleave         compute=   0.668s idle=  2.5% idle_w=  3.0% busy=0.6/0.6/0.6/0.7 tasks=188 steal=0.05s
+ca-HepPh.txt.gz          run=2 F,F,S,S r=0.26 pin lpt                compute=   0.842s idle= 23.9% idle_w= 31.1% busy=0.5/0.5/0.7/0.8 tasks=130 steal=0.05s
+ca-HepPh.txt.gz          run=2 F,F,S,S r=0.26 pin lpt-oracle         compute=   0.655s idle=  4.2% idle_w=  5.2% busy=0.6/0.6/0.6/0.6 tasks=255 steal=0.06s
+ca-HepPh.txt.gz          run=2 F,F,S,S r=0.26 pin giants             compute=   0.733s idle= 17.6% idle_w= 22.7% busy=0.5/0.5/0.6/0.7 tasks=130 steal=0.01s
+ca-HepPh.txt.gz          run=2 F,F,S,S r=0.26 pin split              compute=   0.702s idle= 12.9% idle_w= 18.0% busy=0.5/0.6/0.6/0.7 tasks=130 steal=0.02s
+ca-HepPh.txt.gz          run=2 F,F,S,S r=0.26 pin split-giants       compute=   0.649s idle= 10.1% idle_w= 12.8% busy=0.6/0.6/0.6/0.6 tasks=130 steal=0.05s
+ca-HepPh.txt.gz          run=2 F,F,S,S r=0.26 pin static-oracle@0.26 compute=   0.661s idle= 12.1% idle_w= 16.5% busy=0.5/0.5/0.7/0.6 tasks=190 steal=0.03s
+ca-HepPh.txt.gz          run=3 F,F,S,S r=0.26 pin block              compute=   1.132s idle= 43.5% idle_w= 52.7% busy=0.5/0.5/1.1/0.5 tasks=188 steal=0.02s
+ca-HepPh.txt.gz          run=3 F,F,S,S r=0.26 pin interleave         compute=   0.671s idle=  4.2% idle_w=  4.8% busy=0.6/0.6/0.6/0.7 tasks=188 steal=0.12s
+ca-HepPh.txt.gz          run=3 F,F,S,S r=0.26 pin lpt                compute=   0.661s idle= 10.2% idle_w= 12.5% busy=0.6/0.6/0.7/0.6 tasks=130 steal=0.01s
+ca-HepPh.txt.gz          run=3 F,F,S,S r=0.26 pin lpt-oracle         compute=   0.615s idle=  4.0% idle_w=  4.8% busy=0.6/0.6/0.6/0.6 tasks=255 steal=0.04s
+ca-HepPh.txt.gz          run=3 F,F,S,S r=0.26 pin giants             compute=   0.817s idle= 25.6% idle_w= 30.5% busy=0.5/0.5/0.8/0.5 tasks=130 steal=0.02s
+ca-HepPh.txt.gz          run=3 F,F,S,S r=0.26 pin split              compute=   0.878s idle= 23.9% idle_w= 31.0% busy=0.6/0.6/0.9/0.7 tasks=130 steal=0.02s
+ca-HepPh.txt.gz          run=3 F,F,S,S r=0.26 pin split-giants       compute=   0.759s idle= 18.5% idle_w= 22.1% busy=0.6/0.6/0.7/0.6 tasks=130 steal=0.09s
+ca-HepPh.txt.gz          run=3 F,F,S,S r=0.26 pin static-oracle@0.26 compute=   0.683s idle= 10.6% idle_w= 16.3% busy=0.5/0.6/0.7/0.7 tasks=190 steal=0.02s
+ca-HepPh.txt.gz          run=4 F,F,S,S r=0.26 pin block              compute=   0.812s idle= 26.8% idle_w= 36.5% busy=0.5/0.5/0.7/0.8 tasks=188 steal=0.03s
+ca-HepPh.txt.gz          run=4 F,F,S,S r=0.26 pin interleave         compute=   0.608s idle=  1.3% idle_w=  1.2% busy=0.6/0.6/0.6/0.6 tasks=188 steal=0.01s
+ca-HepPh.txt.gz          run=4 F,F,S,S r=0.26 pin lpt                compute=   0.862s idle= 24.5% idle_w= 32.0% busy=0.5/0.5/0.7/0.9 tasks=130 steal=0.05s
+ca-HepPh.txt.gz          run=4 F,F,S,S r=0.26 pin lpt-oracle         compute=   0.632s idle=  8.5% idle_w= 11.0% busy=0.6/0.5/0.6/0.6 tasks=255 steal=0.05s
+ca-HepPh.txt.gz          run=4 F,F,S,S r=0.26 pin giants             compute=   0.928s idle= 28.2% idle_w= 35.6% busy=0.6/0.5/0.7/0.9 tasks=130 steal=0.05s
+ca-HepPh.txt.gz          run=4 F,F,S,S r=0.26 pin split              compute=   0.751s idle= 18.5% idle_w= 21.9% busy=0.6/0.6/0.7/0.6 tasks=130 steal=0.03s
+ca-HepPh.txt.gz          run=4 F,F,S,S r=0.26 pin split-giants       compute=   0.719s idle= 13.5% idle_w= 18.1% busy=0.6/0.6/0.7/0.6 tasks=130 steal=0.03s
+ca-HepPh.txt.gz          run=4 F,F,S,S r=0.26 pin static-oracle@0.26 compute=   0.660s idle= 10.6% idle_w= 15.8% busy=0.5/0.5/0.7/0.6 tasks=190 steal=0.01s
+predictor: log t = -10.808 + 0.0348*|P|
+ca-HepPh.txt.gz          run=0 F,F,S,S r=0.43 pin block              compute=   0.601s idle= 17.0% idle_w= 21.9% busy=0.4/0.4/0.5/0.6 tasks=188 steal=0.01s
+ca-HepPh.txt.gz          run=0 F,F,S,S r=0.43 pin interleave         compute=   0.541s idle=  3.1% idle_w=  3.5% busy=0.5/0.5/0.5/0.5 tasks=188 steal=0.06s
+ca-HepPh.txt.gz          run=0 F,F,S,S r=0.43 pin lpt                compute=   0.527s idle= 10.1% idle_w= 11.2% busy=0.5/0.5/0.5/0.5 tasks=130 steal=0.02s
+ca-HepPh.txt.gz          run=0 F,F,S,S r=0.43 pin lpt-oracle         compute=   0.506s idle=  2.7% idle_w=  2.8% busy=0.5/0.5/0.5/0.5 tasks=255 steal=0.05s
+ca-HepPh.txt.gz          run=0 F,F,S,S r=0.43 pin giants             compute=   0.595s idle=  9.6% idle_w= 10.8% busy=0.5/0.5/0.5/0.6 tasks=130 steal=0.06s
+ca-HepPh.txt.gz          run=0 F,F,S,S r=0.43 pin split              compute=   0.558s idle=  7.9% idle_w=  9.0% busy=0.5/0.5/0.6/0.5 tasks=130 steal=0.03s
+ca-HepPh.txt.gz          run=0 F,F,S,S r=0.43 pin split-giants       compute=   0.480s idle=  1.3% idle_w=  1.4% busy=0.5/0.5/0.5/0.5 tasks=130 steal=0.04s
+ca-HepPh.txt.gz          run=0 F,F,S,S r=0.43 pin static-oracle@0.43 compute=   0.512s idle=  6.5% idle_w=  8.6% busy=0.4/0.5/0.5/0.5 tasks=190 steal=0.04s
+ca-HepPh.txt.gz          run=1 F,F,S,S r=0.43 pin block              compute=   0.682s idle= 30.3% idle_w= 37.4% busy=0.4/0.3/0.5/0.7 tasks=188 steal=0.01s
+ca-HepPh.txt.gz          run=1 F,F,S,S r=0.43 pin interleave         compute=   0.525s idle=  2.3% idle_w=  2.3% busy=0.5/0.5/0.5/0.5 tasks=188 steal=0.05s
+ca-HepPh.txt.gz          run=1 F,F,S,S r=0.43 pin lpt                compute=   0.563s idle=  8.9% idle_w= 10.1% busy=0.5/0.5/0.5/0.6 tasks=130 steal=0.04s
+ca-HepPh.txt.gz          run=1 F,F,S,S r=0.43 pin lpt-oracle         compute=   0.496s idle=  2.6% idle_w=  3.0% busy=0.5/0.5/0.5/0.5 tasks=255 steal=0.09s
+ca-HepPh.txt.gz          run=1 F,F,S,S r=0.43 pin giants             compute=   0.561s idle= 13.0% idle_w= 14.8% busy=0.5/0.5/0.6/0.5 tasks=130 steal=0.04s
+ca-HepPh.txt.gz          run=1 F,F,S,S r=0.43 pin split              compute=   0.562s idle= 14.6% idle_w= 16.7% busy=0.5/0.5/0.5/0.6 tasks=130 steal=0.08s
+ca-HepPh.txt.gz          run=1 F,F,S,S r=0.43 pin split-giants       compute=   0.466s idle=  0.9% idle_w=  0.9% busy=0.5/0.5/0.5/0.5 tasks=130 steal=0.02s
+ca-HepPh.txt.gz          run=1 F,F,S,S r=0.43 pin static-oracle@0.43 compute=   0.507s idle=  6.0% idle_w=  7.6% busy=0.4/0.5/0.5/0.5 tasks=190 steal=0.02s
+ca-HepPh.txt.gz          run=2 F,F,S,S r=0.43 pin block              compute=   0.536s idle= 10.7% idle_w= 11.4% busy=0.4/0.5/0.5/0.4 tasks=188 steal=0.03s
+ca-HepPh.txt.gz          run=2 F,F,S,S r=0.43 pin interleave         compute=   0.557s idle=  2.0% idle_w=  2.3% busy=0.5/0.5/0.5/0.6 tasks=188 steal=0.02s
+ca-HepPh.txt.gz          run=2 F,F,S,S r=0.43 pin lpt                compute=   0.495s idle=  1.0% idle_w=  1.0% busy=0.5/0.5/0.5/0.5 tasks=130 steal=0.04s
+ca-HepPh.txt.gz          run=2 F,F,S,S r=0.43 pin lpt-oracle         compute=   0.480s idle=  1.2% idle_w=  1.2% busy=0.5/0.5/0.5/0.5 tasks=255 steal=0.06s
+ca-HepPh.txt.gz          run=2 F,F,S,S r=0.43 pin giants             compute=   0.465s idle=  1.4% idle_w=  1.6% busy=0.5/0.5/0.5/0.5 tasks=130 steal=0.03s
+ca-HepPh.txt.gz          run=2 F,F,S,S r=0.43 pin split              compute=   0.519s idle=  8.0% idle_w=  9.2% busy=0.5/0.5/0.5/0.5 tasks=130 steal=0.02s
+ca-HepPh.txt.gz          run=2 F,F,S,S r=0.43 pin split-giants       compute=   0.632s idle= 18.6% idle_w= 21.2% busy=0.5/0.5/0.6/0.5 tasks=130 steal=0.04s
+ca-HepPh.txt.gz          run=2 F,F,S,S r=0.43 pin static-oracle@0.43 compute=   0.547s idle=  8.9% idle_w= 12.3% busy=0.4/0.5/0.5/0.5 tasks=190 steal=0.02s
+ca-HepPh.txt.gz          run=3 F,F,S,S r=0.43 pin block              compute=   0.544s idle= 14.2% idle_w= 18.4% busy=0.4/0.4/0.5/0.5 tasks=188 steal=0.05s
+ca-HepPh.txt.gz          run=3 F,F,S,S r=0.43 pin interleave         compute=   0.531s idle=  2.8% idle_w=  3.1% busy=0.5/0.5/0.5/0.5 tasks=188 steal=0.04s
+ca-HepPh.txt.gz          run=3 F,F,S,S r=0.43 pin lpt                compute=   0.477s idle=  1.4% idle_w=  1.5% busy=0.5/0.5/0.5/0.5 tasks=130 steal=0.03s
+ca-HepPh.txt.gz          run=3 F,F,S,S r=0.43 pin lpt-oracle         compute=   0.476s idle=  2.3% idle_w=  2.5% busy=0.5/0.5/0.5/0.5 tasks=255 steal=0.04s
+ca-HepPh.txt.gz          run=3 F,F,S,S r=0.43 pin giants             compute=   0.522s idle=  6.1% idle_w=  6.9% busy=0.5/0.5/0.5/0.5 tasks=130 steal=0.03s
+ca-HepPh.txt.gz          run=3 F,F,S,S r=0.43 pin split              compute=   0.515s idle=  8.5% idle_w=  9.7% busy=0.5/0.5/0.5/0.5 tasks=130 steal=0.04s
+ca-HepPh.txt.gz          run=3 F,F,S,S r=0.43 pin split-giants       compute=   0.484s idle=  1.7% idle_w=  1.7% busy=0.5/0.5/0.5/0.5 tasks=130 steal=0.05s
+ca-HepPh.txt.gz          run=3 F,F,S,S r=0.43 pin static-oracle@0.43 compute=   0.543s idle=  8.5% idle_w= 10.2% busy=0.5/0.5/0.5/0.5 tasks=190 steal=0.06s
+ca-HepPh.txt.gz          run=4 F,F,S,S r=0.43 pin block              compute=   0.562s idle= 15.0% idle_w= 18.0% busy=0.5/0.4/0.6/0.5 tasks=188 steal=0.03s
+ca-HepPh.txt.gz          run=4 F,F,S,S r=0.43 pin interleave         compute=   0.542s idle=  2.0% idle_w=  2.4% busy=0.5/0.5/0.5/0.5 tasks=188 steal=0.11s
+ca-HepPh.txt.gz          run=4 F,F,S,S r=0.43 pin lpt                compute=   0.553s idle=  1.1% idle_w=  1.2% busy=0.5/0.5/0.5/0.5 tasks=130 steal=0.13s
+ca-HepPh.txt.gz          run=4 F,F,S,S r=0.43 pin lpt-oracle         compute=   0.540s idle=  1.5% idle_w=  1.9% busy=0.5/0.5/0.5/0.5 tasks=255 steal=0.11s
+ca-HepPh.txt.gz          run=4 F,F,S,S r=0.43 pin giants             compute=   0.495s idle=  1.2% idle_w=  1.3% busy=0.5/0.5/0.5/0.5 tasks=130 steal=0.05s
+ca-HepPh.txt.gz          run=4 F,F,S,S r=0.43 pin split              compute=   0.499s idle=  3.3% idle_w=  3.6% busy=0.5/0.5/0.5/0.5 tasks=130 steal=0.02s
+ca-HepPh.txt.gz          run=4 F,F,S,S r=0.43 pin split-giants       compute=   0.476s idle=  2.1% idle_w=  2.3% busy=0.5/0.5/0.5/0.5 tasks=130 steal=0.01s
+ca-HepPh.txt.gz          run=4 F,F,S,S r=0.43 pin static-oracle@0.43 compute=   0.525s idle=  6.9% idle_w=  8.5% busy=0.5/0.5/0.5/0.5 tasks=190 steal=0.03s
+predictor: log t = -10.808 + 0.0348*|P|
+ca-HepPh.txt.gz          run=0 F,F,F,F r=1.0 pin block              compute=   0.374s idle=  4.2% idle_w=  4.2% busy=0.4/0.4/0.4/0.4 tasks=188 steal=0.06s
+ca-HepPh.txt.gz          run=0 F,F,F,F r=1.0 pin lpt                compute=   0.329s idle=  0.4% idle_w=  0.4% busy=0.3/0.3/0.3/0.3 tasks=130 steal=0.01s
+ca-HepPh.txt.gz          run=0 F,F,F,F r=1.0 pin split              compute=   0.363s idle=  0.6% idle_w=  0.6% busy=0.4/0.4/0.4/0.4 tasks=130 steal=0.01s
+ca-HepPh.txt.gz          run=1 F,F,F,F r=1.0 pin block              compute=   0.373s idle= 11.9% idle_w= 11.9% busy=0.3/0.4/0.3/0.3 tasks=188 steal=0.01s
+ca-HepPh.txt.gz          run=1 F,F,F,F r=1.0 pin lpt                compute=   0.338s idle=  0.6% idle_w=  0.6% busy=0.3/0.3/0.3/0.3 tasks=130 steal=0.04s
+ca-HepPh.txt.gz          run=1 F,F,F,F r=1.0 pin split              compute=   0.396s idle=  0.5% idle_w=  0.5% busy=0.4/0.4/0.4/0.4 tasks=130 steal=0.05s
+ca-HepPh.txt.gz          run=2 F,F,F,F r=1.0 pin block              compute=   0.420s idle=  9.2% idle_w=  9.2% busy=0.4/0.4/0.4/0.4 tasks=188 steal=0.03s
+ca-HepPh.txt.gz          run=2 F,F,F,F r=1.0 pin lpt                compute=   0.362s idle=  0.5% idle_w=  0.5% busy=0.4/0.4/0.4/0.4 tasks=130 steal=0.11s
+ca-HepPh.txt.gz          run=2 F,F,F,F r=1.0 pin split              compute=   0.360s idle=  0.7% idle_w=  0.7% busy=0.4/0.4/0.4/0.4 tasks=130 steal=0.02s
+ca-HepPh.txt.gz          run=3 F,F,F,F r=1.0 pin block              compute=   0.365s idle= 15.6% idle_w= 15.6% busy=0.3/0.3/0.4/0.3 tasks=188 steal=0.02s
+ca-HepPh.txt.gz          run=3 F,F,F,F r=1.0 pin lpt                compute=   0.375s idle=  4.4% idle_w=  4.4% busy=0.4/0.4/0.4/0.4 tasks=130 steal=0.02s
+ca-HepPh.txt.gz          run=3 F,F,F,F r=1.0 pin split              compute=   0.349s idle=  0.5% idle_w=  0.5% busy=0.3/0.3/0.3/0.3 tasks=130 steal=0.10s
+ca-HepPh.txt.gz          run=4 F,F,F,F r=1.0 pin block              compute=   0.391s idle= 15.5% idle_w= 15.5% busy=0.4/0.3/0.3/0.3 tasks=188 steal=0.07s
+ca-HepPh.txt.gz          run=4 F,F,F,F r=1.0 pin lpt                compute=   0.333s idle=  0.5% idle_w=  0.5% busy=0.3/0.3/0.3/0.3 tasks=130 steal=0.06s
+ca-HepPh.txt.gz          run=4 F,F,F,F r=1.0 pin split              compute=   0.340s idle=  0.5% idle_w=  0.5% busy=0.3/0.3/0.3/0.3 tasks=130 steal=0.06s
+=== 3e 03:49:44
+predictor: log t = -11.306 + 0.0949*|P|
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 mig block              compute=  89.232s idle= 22.2% idle_w= 28.6% busy=59.6/50.8/78.2/89.2 tasks=2060 steal=3.14s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 mig reversed           compute=  79.967s idle=  8.3% idle_w= 10.6% busy=68.7/68.7/76.0/80.0 tasks=2060 steal=2.67s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 mig interleave         compute=  79.156s idle=  0.0% idle_w=  0.0% busy=79.1/79.1/79.1/79.1 tasks=2060 steal=4.31s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 mig lpt                compute=  74.852s idle=  0.2% idle_w=  0.2% busy=74.7/74.7/74.7/74.8 tasks=289 steal=2.79s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 mig static-oracle@0.43 compute=  76.872s idle=  2.1% idle_w=  2.7% busy=73.2/74.9/75.9/76.9 tasks=2062 steal=3.54s
+predictor: log t = -11.306 + 0.0949*|P|
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin block              compute= 108.211s idle= 28.3% idle_w= 30.4% busy=56.4/87.4/108.2/58.6 tasks=2060 steal=2.90s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin reversed           compute=  84.653s idle=  8.5% idle_w= 11.6% busy=70.9/70.9/84.6/83.4 tasks=2060 steal=2.69s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin interleave         compute=  76.167s idle=  0.1% idle_w=  0.1% busy=76.1/76.1/76.1/76.1 tasks=2060 steal=3.97s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin lpt                compute=  77.186s idle=  2.1% idle_w=  2.5% busy=74.8/74.8/75.5/77.2 tasks=289 steal=3.26s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.43 compute=  80.556s idle=  4.1% idle_w=  5.4% busy=73.5/75.5/80.5/79.6 tasks=2062 steal=3.36s
+predictor: log t = -11.306 + 0.0949*|P|
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 mig block              compute=  98.389s idle= 19.7% idle_w= 16.5% busy=70.2/98.4/83.3/64.3 tasks=2060 steal=3.00s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 mig reversed           compute=  90.972s idle=  9.9% idle_w= 13.6% busy=76.2/76.2/91.0/84.6 tasks=2060 steal=2.98s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 mig interleave         compute=  85.530s idle=  0.3% idle_w=  0.3% busy=85.2/85.2/85.2/85.5 tasks=2060 steal=2.35s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 mig lpt                compute=  87.471s idle=  2.4% idle_w=  2.9% busy=84.6/84.6/87.5/84.7 tasks=289 steal=3.29s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 mig static-oracle@0.26 compute=  85.428s idle=  1.3% idle_w=  1.8% busy=83.9/83.3/84.7/85.4 tasks=2062 steal=3.18s
+predictor: log t = -11.306 + 0.0949*|P|
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 pin block              compute= 211.370s idle= 45.1% idle_w= 59.5% busy=61.2/67.4/211.4/124.4 tasks=2060 steal=3.23s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 pin reversed           compute= 161.322s idle= 37.1% idle_w= 46.0% busy=77.1/77.1/90.4/161.3 tasks=2060 steal=3.44s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 pin interleave         compute=  86.117s idle=  0.0% idle_w=  0.0% busy=86.1/86.1/86.1/86.1 tasks=2060 steal=2.95s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 pin lpt                compute=  94.322s idle=  8.3% idle_w= 10.5% busy=82.9/82.9/94.3/85.8 tasks=289 steal=2.77s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 pin static-oracle@0.26 compute=  92.516s idle=  5.4% idle_w=  7.7% busy=84.2/83.4/92.5/89.9 tasks=2062 steal=2.66s
+predictor: log t = -11.306 + 0.0949*|P|
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 mig block              compute=  88.859s idle= 20.5% idle_w= 19.0% busy=88.9/59.0/73.8/60.9 tasks=2060 steal=2.95s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 mig reversed           compute=  79.625s idle=  8.2% idle_w= 10.3% busy=68.8/68.8/75.3/79.6 tasks=2060 steal=3.22s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 mig interleave         compute=  75.454s idle=  0.0% idle_w=  0.0% busy=75.4/75.4/75.4/75.4 tasks=2060 steal=3.27s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 mig lpt                compute=  74.669s idle=  0.4% idle_w=  0.5% busy=74.2/74.2/74.7/74.3 tasks=289 steal=2.76s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 mig static-oracle@0.43 compute=  78.351s idle=  4.2% idle_w=  5.1% busy=73.3/73.2/78.3/75.5 tasks=2062 steal=2.33s
+predictor: log t = -11.306 + 0.0949*|P|
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin block              compute= 134.336s idle= 33.3% idle_w= 43.4% busy=59.1/51.8/113.1/134.3 tasks=2060 steal=3.65s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin reversed           compute=  94.317s idle= 15.9% idle_w= 20.4% busy=68.5/68.5/86.1/94.3 tasks=2060 steal=2.56s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin interleave         compute=  75.433s idle=  0.1% idle_w=  0.1% busy=75.4/75.4/75.4/75.4 tasks=2060 steal=4.15s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin lpt                compute=  75.010s idle=  1.6% idle_w=  1.8% busy=73.4/73.4/75.0/73.5 tasks=289 steal=2.58s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.43 pin static-oracle@0.43 compute=  77.896s idle=  2.6% idle_w=  3.5% busy=73.1/74.9/77.9/77.6 tasks=2062 steal=3.74s
+predictor: log t = -11.306 + 0.0949*|P|
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 mig block              compute=  98.885s idle= 21.0% idle_w= 28.5% busy=69.7/61.3/98.9/82.6 tasks=2060 steal=3.23s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 mig reversed           compute=  96.384s idle= 14.8% idle_w= 21.1% busy=71.8/71.8/96.4/88.8 tasks=2060 steal=4.95s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 mig interleave         compute=  86.232s idle=  0.0% idle_w=  0.0% busy=86.2/86.2/86.2/86.2 tasks=2060 steal=3.38s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 mig lpt                compute=  86.142s idle=  2.1% idle_w=  2.7% busy=83.5/83.5/84.1/86.1 tasks=289 steal=3.07s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 mig static-oracle@0.26 compute=  86.998s idle=  1.4% idle_w=  1.8% busy=84.7/85.5/86.0/87.0 tasks=2062 steal=3.57s
+predictor: log t = -11.306 + 0.0949*|P|
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 pin block              compute= 214.611s idle= 45.3% idle_w= 59.5% busy=68.8/62.0/124.4/214.6 tasks=2060 steal=4.20s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 pin reversed           compute= 161.729s idle= 37.4% idle_w= 46.1% busy=77.3/77.3/88.7/161.7 tasks=2060 steal=4.51s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 pin interleave         compute=  85.881s idle=  0.8% idle_w=  0.9% busy=85.0/85.0/85.9/85.0 tasks=2060 steal=1.97s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 pin lpt                compute=  96.092s idle=  8.2% idle_w= 10.1% busy=85.1/85.1/96.1/86.4 tasks=289 steal=3.99s
+soc-sign-epinions.txt.gz run=0 F,F,S,S r=0.26 pin static-oracle@0.26 compute=  91.270s idle=  5.2% idle_w=  7.7% busy=83.2/81.9/91.3/89.8 tasks=2062 steal=2.51s
+=== done 04:56:18
