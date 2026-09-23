@@ -1,1 +1,2 @@
 test run at 01:01:53 (may overlap a Phase 1 run)
+02:21 UTC: three self-matching pgrep wait loops (every 5-20 s) ran alongside calibration and Phase 1; killed. Phase 3 started by hand ~4 min after Phase 1 ended.

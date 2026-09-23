@@ -78,16 +78,18 @@ def _ok(row: Row) -> bool:
 
 
 def _min_by(rows: Iterable[Row], key: Callable[[Row], tuple[str, ...]]
-            ) -> dict[tuple[str, ...], tuple[Row, int]]:
-    """Fastest row per key, with how many rows shared that key."""
-    best: dict[tuple[str, ...], tuple[Row, int]] = {}
+            ) -> dict[tuple[str, ...], tuple[Row, int, float]]:
+    """Fastest row per key, with how many rows shared that key and the
+    slowest of them over the fastest (the repeat-to-repeat spread)."""
+    groups: dict[tuple[str, ...], list[Row]] = {}
     for row in rows:
-        k = key(row)
-        prev, n = best.get(k, (None, 0))
-        if prev is None or float(row["compute_s"]) < float(prev["compute_s"]):
-            prev = row
-        best[k] = (prev, n + 1)
-    return best
+        groups.setdefault(key(row), []).append(row)
+    out = {}
+    for k, group in groups.items():
+        times = [float(r["compute_s"]) for r in group]
+        best = group[times.index(min(times))]
+        out[k] = (best, len(group), max(times) / min(times))
+    return out
 
 
 @dataclass
@@ -104,6 +106,7 @@ class Run:
     idle: float
     idle_w: float
     runs: int
+    spread: float  # slowest repeat / fastest repeat
 
     @property
     def throughput(self) -> float:
@@ -121,7 +124,7 @@ class Run:
 def _runs(rows: list[Row], strategy_key: str, base: float) -> list[Run]:
     out = []
     best = _min_by(rows, lambda r: (r["cores"], r["r"], r[strategy_key]))
-    for (cores, r, strategy), (row, n) in sorted(best.items()):
+    for (cores, r, strategy), (row, n, spread) in sorted(best.items()):
         period = int(row["period_us"])
         speeds = [r_eff(period, float(s)) for s in row["speeds"].split(";")]
         out.append(
@@ -136,6 +139,7 @@ def _runs(rows: list[Row], strategy_key: str, base: float) -> list[Run]:
                 idle=float(row["idle_pct"]),
                 idle_w=float(row["idle_weighted_pct"]),
                 runs=n,
+                spread=spread,
             )
         )
     return out
@@ -150,13 +154,14 @@ def phase1_runs() -> list[Run]:
 
 def _print_runs(runs: Sequence[Run], label: str) -> None:
     print(f"| cores | r | {label} | compute | throughput | ideal | efficiency "
-          "| idle | idle (weighted) | busy sum | runs |")
-    print("|---|---|---|---|---|---|---|---|---|---|---|")
+          "| idle | idle (weighted) | busy sum | runs | max/min |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|---|")
     for t in runs:
         print(
             f"| {t.cores} | {t.r or '-'} | {t.strategy} | {t.compute:.1f} s "
             f"| {t.throughput:.2f} | {t.ideal:.2f} | {100 * t.efficiency:.0f}% "
-            f"| {t.idle:.1f}% | {t.idle_w:.1f}% | {sum(t.busy):.0f} s | {t.runs} |"
+            f"| {t.idle:.1f}% | {t.idle_w:.1f}% | {sum(t.busy):.0f} s | {t.runs} "
+            f"| {t.spread:.2f} |"
         )
     print()
 
@@ -187,8 +192,24 @@ def contention_scale(runs: Sequence[Run]) -> float:
     return 1.0
 
 
+JITTER_SIGMA = 0.05  # per-batch lognormal noise for the spread columns
+JITTER_TRIALS = 40
+
+
+def _jittered(costs: list[float], seed: int) -> list[float]:
+    import random
+
+    rng = random.Random(seed)
+    return [c * rng.lognormvariate(0.0, JITTER_SIGMA) for c in costs]
+
+
 def print_sim() -> None:
-    """Simulate every Phase 1 configuration and compare with the measurement."""
+    """Simulate every Phase 1 configuration and compare with the measurement.
+
+    Which worker draws which heavy tail batch hinges on small timing
+    differences, so besides the noiseless run the table gives the 10th-90th
+    percentile over :data:`JITTER_TRIALS` runs with each batch's cost
+    perturbed by lognormal noise of sigma :data:`JITTER_SIGMA`."""
     w = sched_sim.Workload.from_csv(WORKLOAD)
     runs = phase1_runs()
     base = runs[0].base if runs else math.nan
@@ -198,8 +219,8 @@ def print_sim() -> None:
           f"{sum(w.seconds):.1f} s (costs rescaled by {unit:.3f}); per-core speed "
           f"with four busy cores: {scale:.3f}\n")
     print("| cores | r | strategy | measured | sim | error "
-          "| sim with contention | error |")
-    print("|---|---|---|---|---|---|---|---|")
+          "| sim with contention | error | jittered p10-p90 | measured inside |")
+    print("|---|---|---|---|---|---|---|---|---|---|")
     for t in runs:
         if t.cores == "F":
             continue
@@ -208,10 +229,19 @@ def print_sim() -> None:
         plain = sched_sim.simulate_dynamic(costs, t.speeds).makespan
         cont = sched_sim.simulate_dynamic([c / scale for c in costs], t.speeds).makespan
         m = t.compute
+        spread = sorted(
+            sched_sim.simulate_dynamic(
+                _jittered([c / scale for c in costs], k), t.speeds
+            ).makespan
+            for k in range(JITTER_TRIALS)
+        )
+        p10, p90 = spread[len(spread) // 10], spread[(9 * len(spread)) // 10]
+        inside = "yes" if p10 <= m <= p90 else "no"
         print(
             f"| {t.cores} | {t.r or '-'} | {t.strategy} | {m:.1f} s "
             f"| {plain:.1f} s | {100 * (plain - m) / m:+.1f}% "
-            f"| {cont:.1f} s | {100 * (cont - m) / m:+.1f}% |"
+            f"| {cont:.1f} s | {100 * (cont - m) / m:+.1f}% "
+            f"| {p10:.1f}-{p90:.1f} s | {inside} |"
         )
     print()
 
@@ -241,9 +271,15 @@ def _sim_schedule(
     costs: hetero_phase3.Costs,
     fast_scale: Callable[[int], float] | None = None,
     slow_factor: Callable[[int], float] | None = None,
+    cores: list[float] | None = None,
+    migrate: bool = False,
 ) -> sched_sim.SimResult:
     """Simulate a Phase 3 schedule built exactly as the real driver builds it
-    (split schedules excluded: they need branch costs)."""
+    (split schedules excluded: they need branch costs).
+
+    ``speeds`` are the workers' speeds as the schedule assumes them;
+    ``cores``, when given, are the machine's cores (at least as many), on
+    which the workers start in order and, with ``migrate``, move."""
     n = len(costs.measured)
     queues, poll = hetero_phase3.build(name, speeds, costs, {}, list(range(n)), (0, 0))
     m = costs.measured
@@ -262,7 +298,9 @@ def _sim_schedule(
             return cost(task) / slow if slow > 0 else 1.0
 
         factors = [[factor(t) for t in q] for q in queues]
-    return sched_sim.simulate(q_costs, speeds, poll, 0.0, fast_scale, factors)
+    return sched_sim.simulate(
+        q_costs, cores or speeds, poll, 0.0, fast_scale, factors, migrate
+    )
 
 
 SWEEP_SCHEDULES = ["block", "interleave", "lpt", "lpt-oracle", "static-oracle@TRUE"]
@@ -341,6 +379,21 @@ def print_sweep() -> None:
         ]
         print(f"| {sched} | " + " | ".join(cells) + " |")
     print(f"\n(total work {sum(costs.measured):.1f} s at full speed)\n")
+
+    print("### migration (M4 shape: 8 workers on 4 fast + 6 slow cores, r = 0.43)\n")
+    cores = [1.0] * 4 + [0.43] * 6
+    assumed = [1.0] * 4 + [0.43] * 4  # where the workers start
+    lb = sched_sim.lower_bound(costs.measured, assumed)
+    print(f"lower bound with 4 fast + 4 slow workers busy: {lb:.1f} s\n")
+    print("| schedule | pinned | migrating | pinned / LB | migrating / LB |")
+    print("|---|---|---|---|---|")
+    for sched in ["block", "reversed", "interleave", "lpt", "lpt-oracle",
+                  "static-oracle@0.43"]:
+        pin = _sim_schedule(sched, assumed, costs, cores=cores).makespan
+        mig = _sim_schedule(sched, assumed, costs, cores=cores, migrate=True).makespan
+        print(f"| {sched} | {pin:.1f} s | {mig:.1f} s "
+              f"| {pin / lb:.3f} | {mig / lb:.3f} |")
+    print()
 
 
 # M4 strategy-comparison session (artifacts/phase-profile.csv, 2026-07-21,
