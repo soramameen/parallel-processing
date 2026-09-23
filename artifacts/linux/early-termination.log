@@ -8,3 +8,4 @@ moon-moser k=11 (n=33)     cliques=    177,147 largest= 11 eppstein=   0.251s ea
 ca-HepPh.txt.gz            cliques=     14,939 largest=239 eppstein=   1.333s early-term=   1.077s speedup= 1.24x
 ca-AstroPh.txt.gz          cliques=     36,428 largest= 57 eppstein=   1.848s early-term=   1.708s speedup= 1.08x
 min of 3 alternating runs each
+soc-sign-epinions.txt.gz   cliques= 22,226,173 largest= 94 eppstein= 201.872s early-term= 216.722s speedup= 0.93x
