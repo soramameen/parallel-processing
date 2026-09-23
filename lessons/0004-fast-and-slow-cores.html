@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>0004 — 速いコアと遅いコア: 固定か移動か</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/scheduler.js" defer></script>
+<style>
+  .stats { display: flex; gap: 1.5rem; font-size: .9rem; flex-wrap: wrap; }
+  .stats b { font-size: 1.3rem; }
+  .picker { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1rem 0; }
+  .picker button[aria-pressed="true"] { outline: 2px solid var(--warm); }
+  table { border-collapse: collapse; font-size: .88rem; width: 100%; }
+  th, td { text-align: right; padding: .35rem .6rem; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  code { background: var(--card); padding: .1em .35em; border-radius: 4px; font-size: .88em; }
+  .table-wrap { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+<h1>速いコアと遅いコア — worker を固定するか、移動させるか</h1>
+<p class="lede"><a href="0003-batch-strategies.html">0003</a> の続き。M4 で「idle が消えたのに速くならなかった」謎を、コアの速さと OS の振る舞いから説明できるようになる。</p>
+
+<h2>0003 で残った謎</h2>
+<p>M4 で interleave を使うと、idle は 32.6% から 0.1% に消えた。</p>
+<p>それなのに、計算時間は 4.3% しか縮まなかった。</p>
+<p>0003 のシミュレータは「コアはみな同じ速さ」と仮定していたので、この謎を説明できない。</p>
+<p>このレッスンでは、シミュレータに<strong>コアの速さ</strong>と<strong>worker の移動</strong>を入れる。</p>
+
+<h2>2つの新しい部品</h2>
+<div class="card"><span class="label">コアの速さ</span>
+<p>速いコア（M4 の P コア）は速さ 1、遅いコア（E コア）は速さ r で仕事を進める。</p>
+<p>r = 0.43 なら、遅いコアは同じ仕事に 1 ÷ 0.43 ≈ 2.3 倍の時間がかかる。</p></div>
+<div class="card"><span class="label">固定と移動</span>
+<p><strong>固定</strong>: worker はずっと同じコアで働く（Linux で <code>taskset</code> を使った状態）。</p>
+<p><strong>移動</strong>: 仕事が尽きた worker が速いコアを空けると、遅いコアで働いている worker がそこへ引っ越す（macOS のスケジューラの振る舞い）。</p>
+<p>引っ越した worker は、途中の仕事の残りを速いコアで続ける。</p></div>
+
+<h2>触って比べる</h2>
+<p>36 頂点・重さは末尾ほど重い（soc と同じ形）。2 頂点ずつ 18 バッチに分け、速いコア 2 個・遅いコア 2 個（r = 0.43）に 4 worker で配る。</p>
+<p>ガントチャートの行は<strong>コア</strong>。移動ありにすると、1つのバッチが途中で別の行へ移るのが見える。</p>
+<div class="card">
+  <span class="label">戦略</span>
+  <div class="picker" id="strategy-picker">
+    <button data-s="block" aria-pressed="true">block</button>
+    <button data-s="reversed" aria-pressed="false">reversed</button>
+    <button data-s="interleave" aria-pressed="false">interleave</button>
+  </div>
+  <span class="label">WORKER の扱い</span>
+  <div class="picker" id="mode-picker">
+    <button data-m="pin" aria-pressed="true">固定（Linux の taskset）</button>
+    <button data-m="migrate" aria-pressed="false">移動あり（macOS）</button>
+  </div>
+  <span class="label">遅いコアの速さ r</span>
+  <div class="picker" id="r-picker">
+    <button data-r="0.26" aria-pressed="false">0.26</button>
+    <button data-r="0.43" aria-pressed="true">0.43</button>
+    <button data-r="0.75" aria-pressed="false">0.75</button>
+    <button data-r="1" aria-pressed="false">1（均質）</button>
+  </div>
+  <figure><div id="gantt"></div>
+  <figcaption>行 = コア、色 = バッチ。赤線が全体の完了時刻。</figcaption></figure>
+  <div class="stats">
+    <span>完了時刻 <b id="st-makespan">–</b></span>
+    <span>worker の idle <b id="st-idle">–</b></span>
+    <span>速いコアの idle <b id="st-fast">–</b></span>
+  </div>
+</div>
+
+<h2>見てほしい3点</h2>
+<div class="card"><span class="label">1. 固定の block は遅い</span>
+<p>重い末尾のバッチが遅いコアに乗ると、速いコアは早く終わって待つしかない。</p>
+<p>worker の idle も、速いコアの idle も大きい。</p></div>
+<div class="card"><span class="label">2. 移動ありの block は、固定の block よりずっと速い</span>
+<p>速いコアを空けた worker の代わりに、遅いコアの worker が引っ越してくる。</p>
+<p><strong>worker の idle は大きいままなのに、速いコアの idle はほぼ 0 になる。</strong></p>
+<p>つまり worker が暇でも、速いコアは暇ではない。</p></div>
+<div class="card"><span class="label">3. だから M4 では「idle を消しても速くならなかった」</span>
+<p>M4 が測っていたのは worker の idle だった。</p>
+<p>block の idle の多くは、速いコアがすでに別の worker で埋まっている時間だったので、それを消しても速いコアの仕事は増えない。</p>
+<p>idle% は「worker = コア」という前提を暗に置いた指標である。</p></div>
+
+<h2>Linux での実測（コアを固定したエミュレーション）</h2>
+<p>M4 では worker の移動を止められない。そこで Linux 上で、cgroup の CPU 時間制限で遅いコアを作り、worker をコアに固定して測った（soc-sign-epinions、3 回の最小値）。</p>
+<div class="table-wrap">
+<table>
+<tr><th>コア構成</th><th>block</th><th>interleave</th><th>短縮</th></tr>
+<tr><td>速い×4</td><td>64.9 秒（idle 22.8%）</td><td>51.1 秒（idle 0.6%）</td><td>1.27 倍</td></tr>
+<tr><td>速い×2 + 遅い×2（r = 0.43）</td><td>95.1 秒（idle 22.8%）</td><td>72.2 秒（idle 0.8%）</td><td>1.32 倍</td></tr>
+<tr><td>速い×2 + 遅い×2（r = 0.26）</td><td>143.2 秒（idle 32.6%）</td><td>81.8 秒（idle 0.5%）</td><td>1.75 倍</td></tr>
+</table>
+</div>
+<p style="margin-top:1rem">固定なら、コアの速さが違っても idle を消した分だけ速くなる。</p>
+<p>M4 で速くならなかったのは、コアの速さの違いそのものより、<strong>worker がコアを移動していた</strong>ことが効いていた、というのが新しい仮説（H5）。</p>
+<p>数値は 1 回目の測定。確定値は <code>docs/hetero-experiments.md</code> を参照。</p>
+
+<h2>確認クイズ</h2>
+<div class="card">
+<p>Q1. 移動ありの block で「worker の idle は大きいのに速いコアの idle はほぼ 0」になるのはなぜ？</p>
+<button class="quiz-opt">遅いコアが速くなったから</button>
+<button class="quiz-opt" data-ok="1">暇になった worker の速いコアを、別の worker が引き継いだから</button>
+<button class="quiz-opt">バッチが細かくなったから</button>
+</div>
+<div class="card">
+<p>Q2. コアを固定した Linux のエミュレーションで interleave が block より大きく速かったことは、何を示す？</p>
+<button class="quiz-opt" data-ok="1">固定なら、idle を消すことはそのまま高速化になる</button>
+<button class="quiz-opt">遅いコアがあると配り方は関係ない</button>
+<button class="quiz-opt">interleave はどんな環境でも最速である</button>
+</div>
+
+<h2>一次資料</h2>
+<p>遅いコアの作り方は Linux カーネルの <a href="https://docs.kernel.org/scheduler/sched-bwc.html">CFS Bandwidth Control</a>。M4 の P/E コアのクロックは Oakley の測定 <a href="https://eclecticlight.co/2024/11/18/inside-m4-chips-e-and-p-cores/">Inside M4 chips: E and P cores</a>。</p>
+
+<div class="footnav">
+<p>分からないところはそのまま Claude に聞いてください（例:「なぜ移動ありだと reversed はあまり変わらないの？」）。</p>
+<p>← <a href="0003-batch-strategies.html">0003 バッチ配分の3戦略</a></p>
+</div>
+</main>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // 末尾ほど重い 36 頂点（soc の負荷分布の縮図）
+  const weights = Array.from({ length: 36 }, (_, i) => Math.max(1, Math.round(Math.pow(1.13, i) / 2)));
+  const palette = ["#5b8fd6","#54b08a","#c98a4b","#a97fd0","#d06a86","#6ab4c9","#b3ae4f","#8a8f98"];
+  let strategy = "block", mode = "pin", r = 0.43;
+  function draw() {
+    const speeds = [1, 1, r, r];
+    const batches = Scheduler.strategies[strategy](weights.length, 2);
+    const res = Scheduler.simulateHetero(batches, weights, speeds, 4, mode === "migrate");
+    Scheduler.renderCoreGantt(document.getElementById("gantt"), res, speeds, palette);
+    document.getElementById("st-makespan").textContent = res.makespan.toFixed(1);
+    document.getElementById("st-idle").textContent = (100 * res.idle).toFixed(0) + "%";
+    document.getElementById("st-fast").textContent = (100 * res.fastIdle).toFixed(0) + "%";
+  }
+  function wirePicker(id, attr, set) {
+    const box = document.getElementById(id);
+    box.addEventListener("click", e => {
+      const b = e.target.closest("button"); if (!b) return;
+      for (const x of box.querySelectorAll("button")) x.setAttribute("aria-pressed", x === b);
+      set(b.dataset[attr]); draw();
+    });
+  }
+  wirePicker("strategy-picker", "s", v => strategy = v);
+  wirePicker("mode-picker", "m", v => mode = v);
+  wirePicker("r-picker", "r", v => r = +v);
+  for (const q of document.querySelectorAll(".quiz-opt")) {
+    q.addEventListener("click", () => q.classList.add(q.dataset.ok ? "correct" : "wrong"));
+  }
+  draw();
+});
+</script>
+</body>
+</html>

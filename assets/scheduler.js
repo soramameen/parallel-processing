@@ -95,5 +95,94 @@ const Scheduler = (() => {
     el.innerHTML = s;
   }
 
-  return { strategies, simulate, renderGantt, renderStrip };
+  /* 0004: 速さの違うコア。speeds[c] はコア c の速さ（1 = 速いコア）。
+     worker w はコア w から始める（速いコアを先に並べる = OS が最初のスレッドを
+     速いコアに置く想定）。migrate が true なら、仕事が尽きた worker が空けた
+     コアに、いちばん遅いコアで働いている worker が途中の仕事ごと移る。
+     戻り値の segments はコア単位の区間で、移動した仕事は2本に分かれる。 */
+  function simulateHetero(batches, weights, speeds, workers, migrate) {
+    const cost = batches.map(b => b.reduce((s, i) => s + weights[i], 0));
+    const core = range(0, workers);
+    const free = new Set(range(workers, speeds.length));
+    const job = Array(workers).fill(null);   // 実行中のバッチ番号
+    const left = Array(workers).fill(0);     // 残りの仕事量
+    const since = Array(workers).fill(0);    // 今のコアで走り始めた時刻
+    const busy = Array(workers).fill(0);
+    const segments = [];
+    let next = 0, now = 0;
+    const take = w => {
+      if (next < batches.length) { job[w] = next; left[w] = cost[next]; next++; }
+      else job[w] = null;
+      since[w] = now;
+    };
+    const close = w => {
+      if (now > since[w]) segments.push({ core: core[w], start: since[w], end: now, batch: job[w] });
+    };
+    for (let w = 0; w < workers; w++) take(w);
+    for (;;) {
+      const act = range(0, workers).filter(w => job[w] !== null);
+      if (!act.length) break;
+      const dt = Math.min(...act.map(w => left[w] / speeds[core[w]]));
+      now += dt;
+      for (const w of act) { left[w] -= speeds[core[w]] * dt; busy[w] += dt; }
+      for (const w of act) {
+        if (left[w] <= 1e-9) {
+          close(w); take(w);
+          if (job[w] === null) free.add(core[w]);
+        }
+      }
+      while (migrate && free.size) {
+        const best = [...free].reduce((a, b) => (speeds[b] > speeds[a] ? b : a));
+        const running = range(0, workers).filter(w => job[w] !== null);
+        if (!running.length) break;
+        const slow = running.reduce((a, b) => (speeds[core[b]] < speeds[core[a]] ? b : a));
+        if (speeds[core[slow]] >= speeds[best]) break;
+        close(slow);
+        free.delete(best); free.add(core[slow]);
+        core[slow] = best; since[slow] = now;
+      }
+    }
+    const makespan = now;
+    const busySum = busy.reduce((a, b) => a + b, 0);
+    // 速いコアが何もしていなかった割合（worker ではなくコアで数える）
+    const fastCores = range(0, speeds.length).filter(c => speeds[c] >= 1);
+    const fastUsed = segments.filter(g => speeds[g.core] >= 1)
+      .reduce((s, g) => s + g.end - g.start, 0);
+    return {
+      segments, makespan, busy: busySum,
+      idle: 1 - busySum / (workers * makespan),
+      fastIdle: fastCores.length ? 1 - fastUsed / (fastCores.length * makespan) : 0,
+    };
+  }
+
+  function renderCoreGantt(el, result, speeds, palette) {
+    const cores = speeds.length;
+    const W = 640, rowH = 34, pad = 64, H = cores * rowH + 30;
+    const sx = (W - pad - 10) / result.makespan;
+    let s = `<svg viewBox="0 0 ${W} ${H}" role="img">`;
+    for (let c = 0; c < cores; c++) {
+      const y = 10 + c * rowH;
+      const label = speeds[c] >= 1 ? `速い${c}` : `遅い${c}`;
+      s += `<text x="0" y="${y + 17}" font-size="12" fill="var(--ink-soft)">${label}</text>`;
+      s += `<rect x="${pad}" y="${y}" width="${W - pad - 10}" height="${rowH - 10}"
+             fill="none" stroke="var(--line)"/>`;
+    }
+    for (const g of result.segments) {
+      const y = 10 + g.core * rowH;
+      s += `<rect x="${pad + g.start * sx}" y="${y}" width="${(g.end - g.start) * sx}"
+             height="${rowH - 10}" fill="${palette[g.batch % palette.length]}"
+             stroke="var(--bg)" stroke-width="1.5"><title>バッチ${g.batch}</title></rect>`;
+      if ((g.end - g.start) * sx > 22) {
+        s += `<text x="${pad + (g.start + g.end) / 2 * sx}" y="${y + 16}" font-size="11"
+               text-anchor="middle" fill="var(--bg)">b${g.batch}</text>`;
+      }
+    }
+    const mx = pad + result.makespan * sx;
+    s += `<line x1="${mx}" y1="6" x2="${mx}" y2="${H - 24}" stroke="var(--ng)" stroke-dasharray="4 3"/>`;
+    s += `<text x="${mx}" y="${H - 8}" font-size="12" text-anchor="end"
+          fill="var(--ng)">完了 = ${result.makespan.toFixed(1)}</text></svg>`;
+    el.innerHTML = s;
+  }
+
+  return { strategies, simulate, renderGantt, renderStrip, simulateHetero, renderCoreGantt };
 })();
