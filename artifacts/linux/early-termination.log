@@ -1,0 +1,10 @@
+min of 5 alternating runs each
+tree n=20k                 cliques=     19,999 largest=  2 eppstein=   0.084s early-term=   0.091s speedup= 0.92x
+grid 100x100               cliques=     19,800 largest=  2 eppstein=   0.052s early-term=   0.055s speedup= 0.95x
+er-sparse n=20k deg=10     cliques=     99,692 largest=  3 eppstein=   0.401s early-term=   0.399s speedup= 1.01x
+ba-hubs n=20k m=5          cliques=     96,947 largest=  6 eppstein=   0.335s early-term=   0.342s speedup= 0.98x
+er-dense n=120 p=0.5       cliques=     34,965 largest= 10 eppstein=   0.214s early-term=   0.230s speedup= 0.93x
+moon-moser k=11 (n=33)     cliques=    177,147 largest= 11 eppstein=   0.253s early-term=   0.273s speedup= 0.93x
+ca-HepPh.txt.gz            cliques=     14,939 largest=239 eppstein=   1.333s early-term=   1.078s speedup= 1.24x
+ca-AstroPh.txt.gz          cliques=     36,428 largest= 57 eppstein=   1.826s early-term=   1.706s speedup= 1.07x
+min of 3 alternating runs each
