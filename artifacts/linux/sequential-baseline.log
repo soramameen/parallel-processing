@@ -1,0 +1,18 @@
+Wed Sep 23 00:15:05 UTC 2026
+cpu  1110 0 719 186067 54 0 63 130 0 0
+ratio = tomita / eppstein (min of 3); >1 means eppstein is faster
+tree n=20k                 n= 20,000 m=   19,999 d=  1 cliques=     19,999 q=  2 tomita=   1.264s eppstein=   0.083s ratio=15.18x  [tomita 1.26/1.31/1.37 | eppstein 0.08/0.08/0.08]
+grid 100x100               n= 10,000 m=   19,800 d=  2 cliques=     19,800 q=  2 tomita=   0.297s eppstein=   0.052s ratio= 5.67x  [tomita 0.31/0.30/0.30 | eppstein 0.05/0.05/0.05]
+er-sparse n=20k deg=10     n= 20,000 m=  100,000 d=  7 cliques=     99,692 q=  3 tomita=   1.578s eppstein=   0.400s ratio= 3.95x  [tomita 1.59/1.58/1.65 | eppstein 0.41/0.41/0.40]
+ba-hubs n=20k m=5          n= 20,000 m=   99,985 d=  5 cliques=     96,947 q=  6 tomita=   1.784s eppstein=   0.341s ratio= 5.24x  [tomita 1.80/1.80/1.78 | eppstein 0.34/0.36/0.34]
+er-dense n=120 p=0.5       n=    120 m=    3,535 d= 48 cliques=     34,965 q= 10 tomita=   0.245s eppstein=   0.220s ratio= 1.11x  [tomita 0.25/0.24/0.25 | eppstein 0.22/0.22/0.23]
+moon-moser k=11 (n=33)     n=     33 m=      495 d= 30 cliques=    177,147 q= 11 tomita=   0.311s eppstein=   0.256s ratio= 1.22x  [tomita 0.32/0.31/0.31 | eppstein 0.26/0.26/0.26]
+ca-AstroPh.txt.gz          n= 18,772 m=  198,050 d= 56 cliques=     36,428 q= 57 tomita=   6.793s eppstein=   1.809s ratio= 3.75x  [tomita 6.96/6.79/6.86 | eppstein 1.85/1.81/1.86]
+ca-HepPh.txt.gz            n= 12,008 m=  118,489 d=238 cliques=     14,939 q=239 tomita=   3.021s eppstein=   1.374s ratio= 2.20x  [tomita 3.02/3.04/3.08 | eppstein 1.37/1.42/1.39]
+cpu  7450 0 806 204432 60 0 78 199 0 0
+dataset: data/soc-sign-epinions.txt.gz
+vertices: 131,828
+edges:    711,210
+load time: 2.042 s
+degeneracy: 121
+ordering time: 1.314 s
