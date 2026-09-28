@@ -10,9 +10,12 @@ predictor for cost-model scheduling experiments.
 
 Usage::
 
-    python -m parallel_processing.workload_profile [path-to-edge-list]
+    python -m parallel_processing.workload_profile [--out-dir DIR] [path-to-edge-list]
+    python -m parallel_processing.workload_profile --branches K [--out-dir DIR] [path]
+    python -m parallel_processing.workload_profile --early-termination [...] [path]
 
-Writes ``artifacts/workload-<dataset>.csv`` and prints a summary.
+Writes ``<DIR>/workload-<dataset>.csv`` (``DIR`` defaults to ``artifacts``,
+where the M4 profiles live) and prints a summary.
 """
 
 from __future__ import annotations
@@ -32,13 +35,17 @@ from parallel_processing.graph_io import load_edge_list
 Row = tuple[int, int, int, int, int, float]
 
 
-def profile(graph: Graph) -> list[Row]:
+def profile(graph: Graph, early_termination: bool = False) -> list[Row]:
     """Time each outer vertex's subproblem; return one row per vertex.
 
     Runs the same per-vertex search as the parallel workers (via
     ``eppstein_parallel._count_pivot`` on its module globals), so the
     measured times are the task costs a scheduler would actually see.
+    With ``early_termination`` the search is
+    :func:`parallel_processing.eppstein_et.count_subproblem_et` instead.
     """
+    from parallel_processing.eppstein_et import count_subproblem_et
+
     ordering, _ = degeneracy_ordering(graph)
     _init_worker(graph, ordering)
     position = eppstein_parallel._position
@@ -48,7 +55,10 @@ def profile(graph: Graph) -> list[Row]:
         x = {w for w in graph[v] if position[w] < pos}
         p_size = len(p)
         start = time.perf_counter()
-        cliques, _ = _count_pivot(p, x, 1)
+        if early_termination:
+            cliques = count_subproblem_et(graph, p, x)
+        else:
+            cliques, _ = _count_pivot(p, x, 1)
         elapsed = time.perf_counter() - start
         rows.append((pos, v, len(graph[v]), p_size, cliques, elapsed))
     return rows
@@ -91,18 +101,21 @@ def _time_histogram(times: list[float]) -> None:
         print(f"  {label:>15}: {count:>8,} {bar}")
 
 
-def run(path: str | Path) -> None:
+def run(
+    path: str | Path, out_dir: str | Path = "artifacts", early_termination: bool = False
+) -> None:
     """Profile ``path`` per outer vertex, write the CSV, print the summary."""
     path = Path(path)
     print(f"dataset: {path}")
     graph = load_edge_list(path)
 
     wall_start = time.perf_counter()
-    rows = profile(graph)
+    rows = profile(graph, early_termination)
     wall = time.perf_counter() - wall_start
 
-    out = Path("artifacts") / f"workload-{path.name.split('.')[0]}.csv"
-    out.parent.mkdir(exist_ok=True)
+    suffix = "-et" if early_termination else ""
+    out = Path(out_dir) / f"workload-{path.name.split('.')[0]}{suffix}.csv"
+    out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", newline="") as handle:
         writer = csv.writer(handle)
         writer.writerow(["pos", "vertex", "degree", "p_size", "cliques", "seconds"])
@@ -119,11 +132,63 @@ def run(path: str | Path) -> None:
     print(f"csv: {out}")
 
 
+def profile_branches(graph: Graph, top: int) -> list[tuple[int, int, int, float]]:
+    """Time each first-level branch of the ``top`` costliest outer vertices.
+
+    The branches are the ones :func:`parallel_processing.hetero.split_root`
+    defines, timed through the same code path the pull executor runs, so a
+    simulator can price a split schedule. Rows are (pos, branch, |P| of the
+    branch, seconds).
+    """
+    from parallel_processing import hetero
+
+    rows = profile(graph)
+    ordering, _ = degeneracy_ordering(graph)
+    _init_worker(graph, ordering)
+    position = eppstein_parallel._position
+    heavy = sorted(rows, key=lambda r: -r[5])[:top]
+    out = []
+    for pos, *_ in heavy:
+        root = hetero.split_root(graph, ordering, position, pos)
+        if root is None:
+            continue
+        p, _, branches = root
+        for j, v in enumerate(branches):
+            size = len(p & graph[v])
+            p = p - {v}
+            start = time.perf_counter()
+            hetero._count_item((pos, j))
+            out.append((pos, j, size, time.perf_counter() - start))
+    return out
+
+
 def main(argv: list[str] | None = None) -> None:
     """CLI entry point; ``argv`` defaults to ``sys.argv[1:]``."""
-    args = sys.argv[1:] if argv is None else argv
-    run(args[0] if args else DEFAULT_DATASET)
+    args = list(sys.argv[1:] if argv is None else argv)
+    out_dir = "artifacts"
+    if "--out-dir" in args:
+        i = args.index("--out-dir")
+        out_dir = args[i + 1]
+        del args[i : i + 2]
+    if "--branches" in args:
+        i = args.index("--branches")
+        top = int(args[i + 1])
+        del args[i : i + 2]
+        path = Path(args[0] if args else DEFAULT_DATASET)
+        out = Path(out_dir) / f"branches-{path.name.split('.')[0]}.csv"
+        branch_rows = profile_branches(load_edge_list(path), top)
+        with out.open("w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["pos", "branch", "p_size", "seconds"])
+            writer.writerows(branch_rows)
+        print(f"{len(branch_rows)} branches of the {top} costliest vertices: {out}")
+        return
+    early = "--early-termination" in args
+    if early:
+        args.remove("--early-termination")
+    run(args[0] if args else DEFAULT_DATASET, out_dir, early)
 
 
 if __name__ == "__main__":
     main()
+

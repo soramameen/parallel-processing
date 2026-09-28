@@ -36,3 +36,19 @@
 - [ ] `thesis/` をコミットする
 - [ ] worktree `feat/eppstein` の push（頼まれたら conventional-commit-push）
 - [ ] docs/eppstein-experiments.md と Artifact「実験記録」の Notion 同期（必要になったら）
+
+## 非対称コアの研究（2026-09〜）: 次の一手
+
+結果は `docs/hetero-experiments.md`、計画は `docs/plans/hetero-cores.md`。Linux のエミュレーションとシミュレーションは完了（2026-09-23）。
+
+- [ ] M4 で H5 の予測を確かめる（どれも 1 時間以内、背景負荷なし）
+  - [ ] block w=8 を測る（予測: おおよそ 21〜26 秒、interleave の 18.2 秒より 15〜40% 遅い）
+  - [ ] block と interleave を w=4 で測る（予測: interleave が 1.2〜1.3 倍速い）
+  - [ ] powermetrics でクラスタ別稼働率を block と interleave で比べる（予測: block でも P クラスタは終盤まで埋まっている）
+- [ ] 卒論 5 章の「busy 膨張の主因は P/E 非対称」を「非対称 + OS の移動」に、「idle% はコアの均質性を仮定」を「worker = コアを仮定」に直すか指導教員と相談する
+- [ ] Linux のハイブリッド CPU（Intel P/E）が使えるなら、taskset 固定と非固定を比べ、/proc/stat で CPU ごとの稼働率を記録する
+- [x] 早期終了（候補集合がクリークなら直接答える）を試作して測る（`eppstein_et.py`。根だけで判定する形で ca-HepPh 1.24 倍、ca-AstroPh 1.08 倍、soc 1.00 倍。全呼び出しで判定すると soc は 5〜7% の損。シミュでは ca-HepPh の並列上限が 7.48 倍から 32 コアで 31.8 倍に）
+- [ ] 根だけの早期終了を `eppstein.py` 本体と並列版（`eppstein_parallel.py` の `_count_batch`）に取り込み、ca-HepPh の並列スケーリングを測る（4 コアより大きいマシンが要る）
+- [ ] |P| より良いコスト予測子を探す（P 内の辺数など）。予測順と実測順の lpt の差はシミュで最大 13%
+- [ ] 実行中に各コアの進み具合から r を推定し直す適応的配分を試す（静的配分の r ずれへの対策）
+- [ ] worker をコア数より多く置いて OS に移動させることが、アプリ側の動的配分の代わりになるか調べる

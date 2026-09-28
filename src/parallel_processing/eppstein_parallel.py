@@ -27,6 +27,7 @@ from __future__ import annotations
 import os
 import sys
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 from multiprocessing import Pool
 
@@ -69,7 +70,7 @@ def _count_pivot(p: set[int], x: set[int], depth: int) -> tuple[int, int]:
     return count, largest
 
 
-def _count_batch(batch: range) -> tuple[int, int]:
+def _count_batch(batch: Sequence[int]) -> tuple[int, int]:
     """Count cliques rooted at the outer vertices ``ordering[i]`` for i in batch."""
     count = 0
     largest = 0

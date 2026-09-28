@@ -110,3 +110,35 @@ done
 - `graph=soc-sign-epinions-ecore.txt.gz` の行は taskpolicy -b（E コア固定）の測定。データは soc-sign-epinions と同一。
 - `busy_max/busy_min/busy_sum` は worker 別稼働秒。idle% = 1 − busy_sum / (workers × compute_s)。
 - 古い行（strategy 列追加前）は block でバックフィルされている。
+
+## 非対称コアのエミュレーション実験（Linux、2026-09-22〜23）
+
+結果と考察は `docs/hetero-experiments.md`、計画は `docs/plans/hetero-cores.md`、生データは `artifacts/linux/`。
+M4 ではなく Linux（root と cgroup v1 の `cpu` コントローラが必要）で動く。
+Claude Code on the web のクラウド環境（KVM 上の Xeon 4 vCPU）で測った。
+
+```sh
+uv sync --all-groups
+mkdir -p data
+for f in ca-HepPh soc-sign-epinions; do curl -sS -o data/$f.txt.gz https://snap.stanford.edu/data/$f.txt.gz; done
+
+# 1. 逐次ベースライン
+uv run python -m parallel_processing.benchmark_eppstein data/soc-sign-epinions.txt.gz
+# 2. 較正（遅いコアの実効速度。速さ 5 段階 × 周期 3 種類 × タスク 4 種類 × 3 回）
+uv run python -m parallel_processing.benchmark_hetero calibrate --repeat 3 data/soc-sign-epinions.txt.gz
+# 3. この環境での頂点ごとのコスト（M4 の CSV を上書きしないよう出力先を分ける）
+uv run python -m parallel_processing.workload_profile --out-dir artifacts/linux data/soc-sign-epinions.txt.gz
+uv run python -m parallel_processing.workload_profile --out-dir artifacts/linux data/ca-HepPh.txt.gz
+# 4. Phase 1（固定コアでの再現、約 93 分）と Phase 3（配分方式の比較、約 2 時間）
+./scripts/hetero_phase1.sh
+./scripts/hetero_phase3.sh
+# 5. 集計表と図
+uv run python -m parallel_processing.hetero_analysis > /tmp/tables.md
+uv run python -m parallel_processing.hetero_figures docs/figures
+```
+
+注意:
+
+- 測定中は他の CPU 負荷を走らせない。解析を並行するなら `nice -n 19` を付ける
+- 待ち合わせに `pgrep -f <スクリプト名>` を使うと、待つ側のシェル自身のコマンドラインにも同じ文字列が入っていて自分に一致し、永久に終わらない（今回実際に起きた）。PID を控えて `kill -0 <PID>` で待つ
+- `hetero.csv`（Phase 1）と `phase3.csv` の `busy` 列は worker ごとの秒数を `;` で区切ったもの。`speeds` は設定した速さで、実効値は較正表から引く（`hetero_analysis.r_eff`）
