@@ -83,8 +83,8 @@
   <h2><span class="tag tag-first">1</span> 最初に測ったアルゴリズム</h2>
   <p class="hero">Tomita らの <span>CLIQUES</span></p>
   <p>Bron–Kerbosch 法に、ピボットで枝を減らす規則を足したもの。卒論の第一歩として、論文の擬似コードに合わせて実装した。</p>
-  <p>最初の実データの照合先は SNAP の ca-AstroPh。成功の基準は、極大クリーク数が論文の表と同じ <strong>36,427</strong> であること。</p>
-  <p class="src">計画は docs/plans/cliques-benchmark.md。時間の表は、その後の逐次比較（卒論第 5 章）に入っている。</p>
+  <p>最初の実データの照合先は SNAP の ca-AstroPh。計画の基準は論文の表の <strong>36,427</strong>。記録された数は <strong>36,428</strong> で、1 多い。</p>
+  <p class="src">差は SNAP の頂点数のずれとして扱っている。計画は docs/plans/cliques-benchmark.md。時間の表は卒論第 5 章。</p>
 </section>
 
 <section>
@@ -101,6 +101,20 @@
     <li>試した候補は CAND から外す。次の兄弟は、それを処理済みとして扱う。</li>
   </ul>
   <p class="src">実装は src/parallel_processing/cliques.py。基本の Bron–Kerbosch は正しさの照合用で、この実測の対象ではない。</p>
+</section>
+
+<section>
+  <h2><span class="tag tag-par">2</span> 最初の並列は、根を割って遅かった</h2>
+  <table class="mini">
+    <tr><th>worker</th><th class="num">時間</th><th class="num">対 1 worker</th></tr>
+    <tr><td>1</td><td class="num">184.7 秒</td><td class="num">1.00</td></tr>
+    <tr><td>2</td><td class="num">240.2 秒</td><td class="num">0.77</td></tr>
+    <tr><td>4</td><td class="num">236.3 秒</td><td class="num">0.78</td></tr>
+    <tr><td>8</td><td class="num">172.9 秒</td><td class="num">1.07</td></tr>
+  </table>
+  <p>CLIQUES の最初の段を、ピボットの隣でない候補ごとに割った。2 worker と 4 worker は逐次より遅い。</p>
+  <p>枝を作る前処理が 70.16 秒あり、worker を増やしても並列にならない。枝は 128,270 本。</p>
+  <p class="src">soc-sign-epinions。未マージの feat/cliques-parallel-and-materials にある記録。main の learning-records/0001 は別のメモで、卒論にも入っていない。</p>
 </section>
 
 <section>
@@ -132,7 +146,7 @@
   <h2><span class="tag tag-par">3</span> 並列の切り方</h2>
   <p>縮退順序の各頂点を根にする部分問題を、バッチにまとめて worker に配る。</p>
   <p>内側のピボット探索は、逐次のまま。</p>
-  <p>最初の実装は、起動時にグラフ全体を各 worker へ pickle で渡す。配り方はプールの動的割り当て。</p>
+  <p>この実装は、起動時にグラフ全体を各 worker へ pickle で渡す。配り方はプールの動的割り当て。</p>
   <p class="src">eppstein_parallel.py。macOS のプロセス起動は spawn。</p>
 </section>
 
@@ -146,7 +160,7 @@
     <tr><td>8 worker、バッチ 64</td><td class="num">27.7 秒</td><td class="num">3.60</td></tr>
   </table>
   <p>バッチ 512 では、4 worker 以降が 67〜70 秒で止まる。変えたのはバッチの大きさだけ。</p>
-  <p class="src">soc-sign-epinions。1 秒未満のグラフは、起動と転送の約 0.3 秒で逐次より遅くなる。</p>
+  <p class="src">soc-sign-epinions。この表は単発。後のフェーズ分解の 36.2 秒とは別の測定。1 秒未満のグラフは、起動と転送の約 0.3 秒で逐次より遅くなる。</p>
 </section>
 
 <section>
@@ -196,9 +210,18 @@
   <h2><span class="tag tag-later">4</span> 起動時のコピーを減らした</h2>
   <p>fork にすると、グラフを copy-on-write で受け継ぐ。startup は全 9 グラフで 0.03 秒以下。</p>
   <p>spawn では損だった小さいグラフのうち 4 つが、4 worker で約 2 倍の得に転じた。</p>
-  <p>共有メモリ版の soc、8 worker の total は <strong>26.5 秒</strong>。M4 上のいまの到達点。</p>
+  <p>共有メモリ版の soc、8 worker の total は <strong>26.5 秒</strong>。M4 の卒論草稿が置いた到達点。</p>
   <p class="warn">逐次の 94.9 秒は別セッション。約 3.6 倍は参考値。同じセッションで比べてよいのは fork と共有メモリ。</p>
   <p class="src">fork の soc 8 worker total は 31.7 秒。spawn の 37.8 秒も別セッション。</p>
+</section>
+
+<section>
+  <h2><span class="tag tag-later">その後</span> 固定すると、空きを消した分だけ速い</h2>
+  <p class="hero">64.9 秒 <span>→</span> 51.1 秒</p>
+  <p>Linux の 4 vCPU を同じ速さに固定した。block 64.9 秒、interleave 51.1 秒。働いた時間の合計は 200 秒と 203 秒でほぼ同じ。</p>
+  <p>M4 の「空きは消えたが 4.3% しか縮まない」は、コアを固定したこの実験では再現しなかった。</p>
+  <p>worker がコアの間を移る、という仮説はエミュレーションでは当たった。M4 では測り直していない。</p>
+  <p class="src">soc、バッチ 64、3 回の最小値。docs/hetero-experiments.md の Phase 1。卒論第 6 章は、まだ P/E の差だけで説明している。</p>
 </section>
 
 <section>
@@ -217,11 +240,11 @@
 <section data-background-gradient="linear-gradient(135deg, #1a1f2e 0%, #1f3d2d 100%)">
   <h2>いま言えること</h2>
   <ul>
-    <li>最初に合わせたのは CLIQUES。数は ca-AstroPh の 36,427。</li>
-    <li>疎なグラフでは Eppstein が速い。並列の対象にした。</li>
-    <li>外側を配るだけで、バッチを細かくすると soc の 8 worker は 70.0 秒から 27.7 秒。</li>
-    <li>空きを消しても時間は 4.3% しか縮まない。P コアと E コアの差が残る。</li>
-    <li>コピーを減らした到達点は、共有メモリ版の soc 8 worker で total 26.5 秒。条件つき。</li>
+    <li>最初に測ったのは CLIQUES。ca-AstroPh は 36,428 で、論文の表より 1 多い。</li>
+    <li>根を割る並列は、2 worker と 4 worker で遅くなった。外側を Eppstein に変えた。</li>
+    <li>バッチを細かくすると、単発の soc 8 worker は 70.0 秒から 27.7 秒。</li>
+    <li>M4 では空きを消しても 4.3%。コアを固定した Linux では、その現象は再現しなかった。</li>
+    <li>M4 の草稿上の到達点は、共有メモリ版の soc 8 worker で total 26.5 秒。条件つき。</li>
   </ul>
 </section>
 
@@ -231,7 +254,8 @@
     <li>この結果を、論文として一般化できるとはまだ言わない。</li>
     <li>fork の compute が共有メモリより遅い理由は、切り分けが済んでいない。</li>
     <li>E コアの速度比 0.26 は下限。全力のクロックは直接測っていない。</li>
-    <li>速いコアと遅いコアを Linux の cgroup で真似した実験は、その後の途中経過。シミュレータの倍率は実測と分ける。</li>
+    <li>M4 の 4.3% を「移動のせい」と言い切らない。エミュレーションでは当たり、M4 の再測定はない。</li>
+    <li>シミュレータの倍率は実測と分ける。32 コアで 31.8 倍、は壁時計の測定ではない。</li>
     <li>早期終了は、共著グラフの一本道には効く。soc の並列を速くした測定ではない。</li>
   </ul>
   <p class="src">卒論第 6 章の残件と、docs/hetero-experiments.md の早期終了。</p>
