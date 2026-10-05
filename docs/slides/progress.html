@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ここまでの進み方 — 極大クリーク列挙</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/theme/black.css" id="theme">
+  <style>
+    :root {
+      --ink: #e8eef4;
+      --muted: #9aa4b0;
+      --line: rgba(255,255,255,.14);
+      --card: rgba(255,255,255,.05);
+      --first: #ffd43b;
+      --seq: #4dabf7;
+      --par: #69db7c;
+      --later: #ff6b6b;
+    }
+    .reveal { font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+    .reveal h1, .reveal h2, .reveal h3 { font-weight: 700; letter-spacing: .02em; text-transform: none; }
+    .reveal h1 { font-size: 1.85em; line-height: 1.25; }
+    .reveal h2 { font-size: 1.35em; margin-bottom: .45em; }
+    .reveal section { text-align: left; }
+    .reveal .center { text-align: center; }
+    .reveal p, .reveal li { font-size: .78em; line-height: 1.5; }
+    .reveal small, .src { font-size: .46em; color: var(--muted); }
+    .lead { font-size: 1.05em !important; color: #dfe6ee; }
+    .tag { display: inline-block; padding: .12em .55em; border-radius: 999px; font-size: .5em; font-weight: 700; color: #10141a; vertical-align: middle; }
+    .tag-first { background: var(--first); }
+    .tag-seq { background: var(--seq); }
+    .tag-par { background: var(--par); }
+    .tag-later { background: var(--later); }
+    .hero { font-size: 1.7em; font-weight: 700; line-height: 1.2; margin: .25em 0 .15em; }
+    .hero span { color: var(--first); }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: .8em; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .7em; }
+    .card { background: var(--card); border-radius: 10px; padding: .65em .85em; }
+    .card h3 { font-size: .78em; margin: 0 0 .25em; }
+    .card p, .card li { font-size: .66em; }
+    table.mini { font-size: .58em; border-collapse: collapse; width: 100%; }
+    table.mini th, table.mini td { border: 1px solid var(--line); padding: .32em .45em; text-align: left; vertical-align: top; }
+    table.mini th { background: rgba(255,255,255,.06); }
+    table.mini td.num, table.mini th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .steps { display: flex; gap: .4em; margin: .7em 0 .2em; }
+    .steps div { flex: 1; text-align: center; padding: .55em .3em; border-radius: 10px; color: #10141a; font-weight: 700; font-size: .62em; }
+    .steps small { display: block; color: #10141a; opacity: .75; font-weight: 500; margin-top: .2em; }
+    .now { outline: 2px solid #fff; }
+    .warn { color: var(--later); font-weight: 700; }
+    .ok { color: var(--par); font-weight: 700; }
+  </style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section data-background-gradient="linear-gradient(135deg, #1a1f2e 0%, #2a1f3d 100%)">
+  <p><span class="tag tag-first">途中経過</span></p>
+  <h1>ここまでの進み方</h1>
+  <p class="lead">極大クリークを全部出す計算を、測りながら並列にしてきた。</p>
+  <p>論文として閉じた主張ではない。測った順に、何を見て次を決めたかを話す。</p>
+</section>
+
+<section>
+  <h2>今日の順</h2>
+  <div class="steps">
+    <div style="background:var(--first)">1<small>最初に測ったもの</small></div>
+    <div style="background:var(--seq)">2<small>逐次で比べる</small></div>
+    <div style="background:var(--par)">3<small>外側を配る</small></div>
+    <div style="background:var(--later)">4<small>止まった理由を潰す</small></div>
+  </div>
+  <p>数字は、その場の条件と一緒に出す。別の日、別の機械の数字は並べて倍率にしない。</p>
+</section>
+
+<section>
+  <h2><span class="tag tag-first">1</span> 何を数えているか</h2>
+  <p>互いに全部つながった頂点の集まりがクリーク。</p>
+  <p>どれを足してもクリークでなくなるものが、極大クリーク。</p>
+  <p>この研究は、その極大クリークを<strong>全部</strong>出す。一番大きいものを 1 個だけ探す問題ではない。</p>
+  <p class="src">定義は卒論第 2 章。主対象の soc-sign-epinions は頂点 131,828、極大クリーク約 2,223 万。</p>
+</section>
+
+<section>
+  <h2><span class="tag tag-first">1</span> 最初に測ったアルゴリズム</h2>
+  <p class="hero">Tomita らの <span>CLIQUES</span></p>
+  <p>Bron–Kerbosch 法に、ピボットで枝を減らす規則を足したもの。卒論の第一歩として、論文の擬似コードに合わせて実装した。</p>
+  <p>最初の実データの照合先は SNAP の ca-AstroPh。成功の基準は、極大クリーク数が論文の表と同じ <strong>36,427</strong> であること。</p>
+  <p class="src">計画は docs/plans/cliques-benchmark.md。時間の表は、その後の逐次比較（卒論第 5 章）に入っている。</p>
+</section>
+
+<section>
+  <h2><span class="tag tag-first">1</span> CLIQUES は何をしているか</h2>
+  <div class="grid3">
+    <div class="card"><h3>Q</h3><p>ここまで育てたクリーク。</p></div>
+    <div class="card"><h3>SUBG</h3><p>まだ入れてよい頂点。</p></div>
+    <div class="card"><h3>CAND</h3><p>まだ試していない候補。</p></div>
+  </div>
+  <ul>
+    <li>SUBG が空なら、Q は極大クリーク。</li>
+    <li>SUBG から、CAND を一番多く見ている頂点をピボットに選ぶ。</li>
+    <li>ピボットの隣は、この段では試さない。</li>
+    <li>試した候補は CAND から外す。次の兄弟は、それを処理済みとして扱う。</li>
+  </ul>
+  <p class="src">実装は src/parallel_processing/cliques.py。基本の Bron–Kerbosch は正しさの照合用で、この実測の対象ではない。</p>
+</section>
+
+<section>
+  <h2><span class="tag tag-seq">2</span> 次に足した Eppstein</h2>
+  <p>外側の順番だけを変える。内側は同じピボット探索。</p>
+  <ol>
+    <li>その時点で次数が最小の頂点を、繰り返し剥がす。この順が縮退順序。</li>
+    <li>各頂点について、自分より後ろの隣だけを候補にする。</li>
+    <li>その部分問題の中は、CLIQUES と同じピボットで探す。</li>
+  </ol>
+  <p>疎なグラフでは、外側の候補が小さくなる。各頂点の部分問題は、互いに独立。</p>
+  <p class="src">Eppstein, Löffler, Strash。実装は eppstein.py。出力するクリーク集合は CLIQUES と一致させる。</p>
+</section>
+
+<section>
+  <h2><span class="tag tag-seq">2</span> 逐次で比べた</h2>
+  <table class="mini">
+    <tr><th>グラフ</th><th class="num">CLIQUES</th><th class="num">Eppstein</th><th class="num">倍率</th></tr>
+    <tr><td>木 n=20,000</td><td class="num">0.502 秒</td><td class="num">0.030 秒</td><td class="num">16.6</td></tr>
+    <tr><td>soc-sign-epinions</td><td class="num">167.3 秒</td><td class="num">94.9 秒</td><td class="num">1.8</td></tr>
+    <tr><td>完全グラフ K<sub>300</sub></td><td class="num">0.074 秒</td><td class="num">0.192 秒</td><td class="num">0.4</td></tr>
+  </table>
+  <p>疎で大きいほど Eppstein が速い。明確に負けるのは完全グラフ。</p>
+  <p>以降の並列化は Eppstein。主力は soc-sign-epinions。</p>
+  <p class="src">Apple M4、純 Python。同じプロセスで交互に 3 回、最小値。振れは 1% 未満。10 グラフの全表は卒論第 5 章。</p>
+</section>
+
+<section>
+  <h2><span class="tag tag-par">3</span> 並列の切り方</h2>
+  <p>縮退順序の各頂点を根にする部分問題を、バッチにまとめて worker に配る。</p>
+  <p>内側のピボット探索は、逐次のまま。</p>
+  <p>最初の実装は、起動時にグラフ全体を各 worker へ pickle で渡す。配り方はプールの動的割り当て。</p>
+  <p class="src">eppstein_parallel.py。macOS のプロセス起動は spawn。</p>
+</section>
+
+<section>
+  <h2><span class="tag tag-par">3</span> バッチを細かくしただけ</h2>
+  <p class="hero">70.0 秒 <span>→</span> 27.7 秒</p>
+  <table class="mini">
+    <tr><th>構成</th><th class="num">列挙時間</th><th class="num">workers=1 比</th></tr>
+    <tr><td>workers=1</td><td class="num">99.8 秒</td><td class="num">1.00</td></tr>
+    <tr><td>8 worker、バッチ 512</td><td class="num">70.0 秒</td><td class="num">1.43</td></tr>
+    <tr><td>8 worker、バッチ 64</td><td class="num">27.7 秒</td><td class="num">3.60</td></tr>
+  </table>
+  <p>バッチ 512 では、4 worker 以降が 67〜70 秒で止まる。変えたのはバッチの大きさだけ。</p>
+  <p class="src">soc-sign-epinions。1 秒未満のグラフは、起動と転送の約 0.3 秒で逐次より遅くなる。</p>
+</section>
+
+<section>
+  <h2><span class="tag tag-later">4</span> 仕事は末尾に偏っていた</h2>
+  <table class="mini">
+    <tr><th>データ</th><th class="num">一番重い 1 頂点</th><th class="num">上位 1%</th></tr>
+    <tr><td>soc-sign-epinions</td><td class="num">0.86%</td><td class="num">94.7%</td></tr>
+    <tr><td>ca-HepPh</td><td class="num">13.0%</td><td class="num">47.0%</td></tr>
+    <tr><td>ca-AstroPh</td><td class="num">0.21%</td><td class="num">17.7%</td></tr>
+  </table>
+  <p>soc の重い頂点は、縮退順序の末尾に集まる。外周から剥がすと、密な芯が残る。1 頂点は 0.86% なので、細かくすれば均せる。</p>
+  <p>ca-HepPh は別。1 頂点が 13% なので、その中を割らない限り上限は約 7.7 倍。</p>
+  <p class="src">シェアは全所要時間に対する割合。卒論第 5 章の負荷分布。</p>
+</section>
+
+<section>
+  <h2><span class="tag tag-later">4</span> 止まっている場所</h2>
+  <p>soc、バッチ 64、8 worker。3 回の最小値。</p>
+  <table class="mini">
+    <tr><th>ordering</th><th>startup</th><th>compute</th><th>total</th><th>対 w=1</th><th>idle</th></tr>
+    <tr><td>0.34 秒</td><td>1.27 秒</td><td>36.2 秒</td><td>37.8 秒</td><td>3.35 倍</td><td>30.4%</td></tr>
+  </table>
+  <p>縮退順序は軽い。startup は worker 数にほぼ比例して伸びる。</p>
+  <p>8 worker でも両者の合計は total の 4%。主因は compute の中の空き。忙しい worker 36.2 秒、暇な worker 11.8 秒。</p>
+</section>
+
+<section>
+  <h2><span class="tag tag-later">4</span> 混ぜても、時間は少ししか縮まない</h2>
+  <p class="hero">idle 32.6% <span>→</span> 0.1%</p>
+  <p>interleave は、重い頂点と軽い頂点を同じバッチに混ぜる。8 worker の compute は 25.9 秒から 24.8 秒。短縮は 4.3%。</p>
+  <p>働いた時間の合計は 139 秒から 198 秒に増えた。空きを埋めた分、1 単位の仕事が遅くなった。</p>
+  <p class="src">soc、バッチ 64、3 回の最小値。block と同一セッション。</p>
+</section>
+
+<section>
+  <h2><span class="tag tag-later">4</span> 遅いコアが混ざっていた</h2>
+  <div class="grid2">
+    <div class="card"><h3>P コア</h3><p class="hero" style="font-size:1.3em">96.0 秒</p><p>workers=1、通常。</p></div>
+    <div class="card"><h3>E コア固定</h3><p class="hero" style="font-size:1.3em">363.6 秒</p><p>同じ計算。速度比 0.26。下限。</p></div>
+  </div>
+  <p>固定に使った background QoS は優先度も下げる。この比は E コアの全力ではない。</p>
+  <p>Chrome を閉じると、interleave の 8 worker は compute 24.8 秒から 18.2 秒。閉じた環境では、対 workers=1 の compute で 5.3 倍。</p>
+  <p class="src">soc、interleave、バッチ 64、3 回の最小値。taskpolicy -b。</p>
+</section>
+
+<section>
+  <h2><span class="tag tag-later">4</span> 起動時のコピーを減らした</h2>
+  <p>fork にすると、グラフを copy-on-write で受け継ぐ。startup は全 9 グラフで 0.03 秒以下。</p>
+  <p>spawn では損だった小さいグラフのうち 4 つが、4 worker で約 2 倍の得に転じた。</p>
+  <p>共有メモリ版の soc、8 worker の total は <strong>26.5 秒</strong>。M4 上のいまの到達点。</p>
+  <p class="warn">逐次の 94.9 秒は別セッション。約 3.6 倍は参考値。同じセッションで比べてよいのは fork と共有メモリ。</p>
+  <p class="src">fork の soc 8 worker total は 31.7 秒。spawn の 37.8 秒も別セッション。</p>
+</section>
+
+<section>
+  <h2><span class="tag tag-later">その後</span> 一本道は枝で割れない</h2>
+  <p>ca-HepPh の重い頂点は、候補 238 個が互いに全部つながっている。ピボットを選ぶと枝は 1 本。深さで割っても割れない。</p>
+  <p>P がクリークなら、その場で答えを 1 個返す。判定は外側の根だけに置く。</p>
+  <table class="mini">
+    <tr><th>グラフ</th><th class="num">Eppstein</th><th class="num">根だけ</th><th class="num">倍率</th></tr>
+    <tr><td>ca-HepPh</td><td class="num">1.368 秒</td><td class="num">1.104 秒</td><td class="num">1.24</td></tr>
+    <tr><td>ca-AstroPh</td><td class="num">1.871 秒</td><td class="num">1.732 秒</td><td class="num">1.08</td></tr>
+    <tr><td>soc-sign-epinions</td><td class="num">202.6 秒</td><td class="num">201.9 秒</td><td class="num">1.00</td></tr>
+  </table>
+  <p class="src">Linux 上の逐次。M4 の 94.9 秒とは機械が違う。全呼び出しにすると soc は 213.8 秒で 5% 遅い。docs/hetero-experiments.md。</p>
+</section>
+
+<section data-background-gradient="linear-gradient(135deg, #1a1f2e 0%, #1f3d2d 100%)">
+  <h2>いま言えること</h2>
+  <ul>
+    <li>最初に合わせたのは CLIQUES。数は ca-AstroPh の 36,427。</li>
+    <li>疎なグラフでは Eppstein が速い。並列の対象にした。</li>
+    <li>外側を配るだけで、バッチを細かくすると soc の 8 worker は 70.0 秒から 27.7 秒。</li>
+    <li>空きを消しても時間は 4.3% しか縮まない。P コアと E コアの差が残る。</li>
+    <li>コピーを減らした到達点は、共有メモリ版の soc 8 worker で total 26.5 秒。条件つき。</li>
+  </ul>
+</section>
+
+<section>
+  <h2>まだ言わないこと</h2>
+  <ul>
+    <li>この結果を、論文として一般化できるとはまだ言わない。</li>
+    <li>fork の compute が共有メモリより遅い理由は、切り分けが済んでいない。</li>
+    <li>E コアの速度比 0.26 は下限。全力のクロックは直接測っていない。</li>
+    <li>速いコアと遅いコアを Linux の cgroup で真似した実験は、その後の途中経過。シミュレータの倍率は実測と分ける。</li>
+    <li>早期終了は、共著グラフの一本道には効く。soc の並列を速くした測定ではない。</li>
+  </ul>
+  <p class="src">卒論第 6 章の残件と、docs/hetero-experiments.md の早期終了。</p>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.js"></script>
+<script>
+  Reveal.initialize({ hash: true, slideNumber: 'c/t', transition: 'slide', width: 1120, height: 720, margin: 0.06 });
+</script>
+</body>
+</html>
