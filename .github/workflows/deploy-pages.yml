@@ -5,6 +5,11 @@ on:
     branches: [main]
     paths:
       - 'artifacts/**'
+      - 'lessons/**'
+      - 'assets/**'
+      - 'docs/slides/**'
+      - 'docs/artifacts/**'
+      - 'reference/**'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
@@ -30,6 +35,12 @@ jobs:
           if [ -f artifacts/bron-kerbosch.html ]; then
             cp artifacts/bron-kerbosch.html _site/index.html
           fi
+          mkdir -p _site/lessons _site/assets _site/docs/slides _site/docs/artifacts _site/reference
+          cp -r lessons/. _site/lessons/
+          cp -r assets/. _site/assets/
+          cp -r docs/slides/. _site/docs/slides/
+          cp -r docs/artifacts/. _site/docs/artifacts/
+          cp -r reference/. _site/reference/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
