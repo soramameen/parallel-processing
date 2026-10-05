@@ -30,16 +30,16 @@ jobs:
       - name: Build site
         run: |
           mkdir -p _site
+          # 新しい研究ダッシュボードをルートに配置
+          cp index.html _site/index.html
+          # 既存のartifactsをそのまま配置（bron-kerbosch.htmlも含む）
           cp -r artifacts/. _site/
-          # 完成版を index.html として配置（ルートURLで表示）
-          if [ -f artifacts/bron-kerbosch.html ]; then
-            cp artifacts/bron-kerbosch.html _site/index.html
-          fi
-          mkdir -p _site/lessons _site/assets _site/docs/slides _site/docs/artifacts _site/reference
+          mkdir -p _site/lessons _site/assets _site/docs/slides _site/docs/artifacts _site/docs/figures _site/reference
           cp -r lessons/. _site/lessons/
           cp -r assets/. _site/assets/
           cp -r docs/slides/. _site/docs/slides/
           cp -r docs/artifacts/. _site/docs/artifacts/
+          cp -r docs/figures/. _site/docs/figures/
           cp -r reference/. _site/reference/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
