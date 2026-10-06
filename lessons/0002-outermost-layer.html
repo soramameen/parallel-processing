@@ -16,6 +16,12 @@
   .setR { color: var(--ok); } .setP { color: var(--accent); } .setX { color: var(--ng); }
   .outcome { min-height: 3.5rem; font-size: .9rem; }
   .tree-note { font-size: .8rem; color: var(--ink-soft); }
+  @media (max-width: 640px) {
+    main { padding: 1rem; }
+    h1 { font-size: 1.4rem; }
+    button, .picker button, .quiz-opt { padding: 0.6rem 1rem; min-height: 44px; font-size: 0.9rem; }
+    table { font-size: 0.8rem; overflow-x: auto; display: block; }
+  }
 </style>
 </head>
 <body>

@@ -11,10 +11,18 @@
   .stats b { font-size: 1.3rem; }
   .picker { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1rem 0; }
   .picker button[aria-pressed="true"] { outline: 2px solid var(--warm); }
-  table { border-collapse: collapse; font-size: .88rem; width: 100%; }
+  .picker button { padding: 0.6rem 1rem; min-height: 44px; }
+  table { border-collapse: collapse; font-size: .88rem; width: 100%; overflow-x: auto; display: block; }
   th, td { text-align: right; padding: .35rem .6rem; border-bottom: 1px solid var(--line); }
   th:first-child, td:first-child { text-align: left; }
   code { background: var(--card); padding: .1em .35em; border-radius: 4px; font-size: .88em; }
+  @media (max-width: 640px) {
+    main { padding: 1rem; }
+    h1 { font-size: 1.4rem; }
+    .picker button { font-size: 0.85rem; padding: 0.5rem 0.8rem; }
+    table { font-size: 0.8rem; }
+    .stats { font-size: 0.8rem; }
+  }
 </style>
 </head>
 <body>
