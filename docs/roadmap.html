@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>思い出しロードマップ — 極大クリーク列挙の並列化</title>
+  <style>
+    :root {
+      --bg: #f8f9fa;
+      --text: #212529;
+      --muted: #6c757d;
+      --accent: #0d6efd;
+      --accent-light: #e7f1ff;
+      --code-bg: #f1f3f5;
+      --border: #dee2e6;
+      --step-bg: #fff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.8;
+      color: var(--text);
+      background: var(--bg);
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      background: #fff;
+      min-height: 100vh;
+    }
+    header {
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid var(--border);
+    }
+    h1 {
+      font-size: 1.75rem;
+      margin: 0 0 0.5rem 0;
+      color: var(--accent);
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin: 0;
+    }
+    h2 {
+      font-size: 1.4rem;
+      margin: 2rem 0 1rem 0;
+      padding: 0.5rem 0.75rem;
+      background: var(--accent-light);
+      border-left: 4px solid var(--accent);
+    }
+    h3 {
+      font-size: 1.1rem;
+      margin: 1.5rem 0 0.5rem 0;
+      color: var(--accent);
+    }
+    p {
+      margin: 0.75rem 0;
+    }
+    ul {
+      margin: 0.5rem 0;
+      padding-left: 1.75rem;
+    }
+    li {
+      margin: 0.5rem 0;
+    }
+    code {
+      background: var(--code-bg);
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+    }
+    .step {
+      background: var(--step-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin: 1.5rem 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .step-header {
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+    .step ul {
+      margin-top: 0.5rem;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    @media (max-width: 640px) {
+      .container {
+        padding: 1rem;
+      }
+      h1 {
+        font-size: 1.5rem;
+      }
+      h2 {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>思い出しロードマップ（最小限・約5日・7ステップ）</h1>
+      <p class="subtitle">極大クリーク列挙の並列化研究を再学習するための教材ガイド</p>
+    </header>
+
+    <p>1日1時間ほどで約5日。各ステップは「まず可視化・教材で感覚をつかむ → コードを読む → 卒論の該当節を読む → 問いに答える」の順で進める。</p>
+
+    <div class="step">
+      <div class="step-header">Step0 全体像（15分・1日目）</div>
+      <ul>
+        <li>読む: <code>MISSION.md</code>、<code>docs/common/基本方針.md</code>、<code>thesis/chapters/01-introduction.tex</code> の「本研究のアプローチ」と「本研究の貢献」</li>
+        <li>問い: この研究を一言で言うと？何を速くしようとした？</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <div class="step-header">Step1 極大クリーク列挙とは（30分・1日目）</div>
+      <ul>
+        <li>読む: <a href="slides/enumeration-motivation.html">なぜ列挙するのか</a>、2章「グラフとクリーク」</li>
+        <li>問い: 「極大」と「最大」の違いは？5頂点くらいの小さなグラフで、極大クリークを手で全部書き出せる？</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <div class="step-header">Step2 Bron–Kerbosch とピボット（1時間・2日目）</div>
+      <ul>
+        <li>触る: <a href="artifacts/bron-kerbosch-visualizer.html">Bron–Kerbosch 可視化シミュレータ</a> → <a href="artifacts/bron-kerbosch-pivot-visualizer.html">pivot版の比較</a>（迷ったら <a href="artifacts/bron-kerbosch-guide.html">入門ガイド</a>）</li>
+        <li>コード: <code>src/parallel_processing/bron_kerbosch.py</code> の <code>bron_kerbosch_simple</code>（L29）と <code>bron_kerbosch_pivot</code>（L51）、<code>cliques.py</code> の <code>cliques</code>（L42、Tomita CLIQUES）</li>
+        <li>問い: R・P・X はそれぞれ何の集合？X がないと何が困る？ピボットを選ぶと、どの枝を探さずに済む？</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <div class="step-header">Step3 縮退順序と Eppstein（1時間・2〜3日目）</div>
+      <ul>
+        <li>触る: <a href="../lessons/0001-degeneracy-peeling.html">縮退数 d を手で剥がして理解する</a>、<code>learning-records/0001-degeneracy-definition-confusion.md</code></li>
+        <li>コード: <code>eppstein.py</code> の <code>degeneracy_ordering</code>（L36）、<code>eppstein_cliques</code>（L86）、<code>_bron_kerbosch_degeneracy</code>（L126）</li>
+        <li>卒論: 2章「縮退数と縮退順序」「Eppstein アルゴリズム」、5章「逐次版の比較：CLIQUES 対 Eppstein」</li>
+        <li>問い: 縮退数とは（頂点を剥がしていく操作で説明できる？）。外側ループで頂点 v ごとに P と X をどう作る？soc-sign-epinions の逐次実行（約95秒）で Eppstein のほうが速いのはなぜ？</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <div class="step-header">Step4 並列化の基本形（1時間・3日目）</div>
+      <ul>
+        <li>触る: <a href="../lessons/0002-outermost-layer.html">「最外層」とは何か</a>、<code>learning-records/0002-outermost-layer.md</code></li>
+        <li>コード: <code>eppstein_parallel.py</code> の <code>BATCH_SIZE</code>（L37）、<code>_init_worker</code>（L46）、<code>_count_batch</code>（L72）、<code>count_eppstein_cliques_parallel</code>（L155）</li>
+        <li>卒論: 4章「最外層の独立性とカウント版への限定」「プロセスプールによる基本実装」</li>
+        <li>問い: 最外層の頂点ごとの仕事はなぜ互いに独立？なぜ列挙ではなく「数えるだけ」の版にした？worker を起動するとき何を渡している？</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <div class="step-header">Step5 並列化の工夫（1.5時間・4日目）</div>
+      <ul>
+        <li>触る: <a href="../lessons/0003-batch-strategies.html">バッチ配分の3戦略</a>、<a href="../reference/batch-strategies.html">早見表</a>、<code>learning-records/0003-batch-strategies-and-pe-cores.md</code></li>
+        <li>コード: <code>eppstein_parallel_interleave.py</code>、<code>eppstein_parallel_reversed.py</code>（配分戦略）、<code>eppstein_parallel_fork.py</code>、<code>eppstein_parallel_shm.py</code> の <code>_pack</code>（L36）（グラフの届け方）</li>
+        <li>卒論: 4章「バッチ配分の三つの戦略」「グラフを worker へ届ける二つの方式」、5章「負荷分布の測定」</li>
+        <li>問い: 仕事量が一部の頂点に偏るのはなぜ（上位1%に94.7%）？interleave はそれをどう和らげる？spawn・fork・shm はそれぞれグラフをどうやって worker に届けていて、何が遅くなる原因？</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <div class="step-header">Step6 ベンチ結果の読み方（1.5時間・4〜5日目）</div>
+      <ul>
+        <li>読む: <code>REPRODUCE.md</code>（測定プロトコル）、<code>docs/eppstein-experiments.md</code>、<code>artifacts/phase-profile.csv</code> と <code>phase_profile.py</code></li>
+        <li>卒論: 5章「フェーズ別時間の分解」から最後の節まで</li>
+        <li>問い: startup と compute は何を測っている？9グラフのうち6グラフで並列化が損になるのはなぜ？E コアの速度比 0.26 が「下限の実測値」で、0.43 が「推定値」なのはなぜ？4.9倍（クリーン環境での interleave）と約3.6倍（shm）は条件がどう違う？</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <div class="step-header">Step7 卒論で説明できる状態にする（1時間・5日目）</div>
+      <ul>
+        <li>読む: <code>06-conclusion.tex</code> の「本研究のまとめ」と「得られた知見」、<code>thesis/slides.pptx</code></li>
+        <li>ゴール: 4つの知見（起動の固定費、負荷の偏り、P/E コアの非対称性、メモリ共有方式）をそれぞれ一文で言えて、全体を5分で口頭説明できること。</li>
+      </ul>
+    </div>
+
+    <footer style="margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.9rem;">
+      <p><a href="../index.html">教材一覧へ戻る</a></p>
+    </footer>
+  </div>
+</body>
+</html>
