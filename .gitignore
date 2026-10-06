@@ -38,3 +38,6 @@ data/
 .claude/
 
 # LaTeX build artifacts are ignored via thesis/.gitignore
+
+# GitHub Pages build output
+_site/
