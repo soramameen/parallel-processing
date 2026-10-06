@@ -5,11 +5,13 @@ on:
     branches: [main]
     paths:
       - 'index.html'
+      - 'research.html'
       - 'docs/roadmap.md'
       - 'docs/roadmap.html'
       - 'lessons/**'
       - 'docs/slides/**'
       - 'docs/artifacts/**'
+      - 'docs/figures/**'
       - 'reference/**'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
@@ -33,8 +35,10 @@ jobs:
           mkdir -p _site
           # Japanese index page for learning materials
           cp index.html _site/index.html
+          # Research dashboard
+          cp research.html _site/research.html
           # Create directory structure
-          mkdir -p _site/lessons _site/docs/slides _site/docs/artifacts _site/reference
+          mkdir -p _site/lessons _site/docs/slides _site/docs/artifacts _site/docs/figures _site/reference
           # Copy HTML learning materials
           cp -r lessons/*.html _site/lessons/ 2>/dev/null || true
           cp -r docs/slides/*.html _site/docs/slides/ 2>/dev/null || true
@@ -42,6 +46,8 @@ jobs:
           cp -r reference/*.html _site/reference/ 2>/dev/null || true
           # Copy roadmap
           cp docs/roadmap.html _site/docs/roadmap.html
+          # Copy figures for research dashboard
+          cp -r docs/figures/*.svg _site/docs/figures/ 2>/dev/null || true
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
