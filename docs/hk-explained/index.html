@@ -1295,3 +1295,834 @@ k=5: n=95, 極大クリーク≤216, guided呼び出し=63</pre>
       </table>
     </div>
   </div>
+
+<style>
+/* Stepper-specific styles */
+.stepper-intro { margin: 24px 0; }
+
+.stepper-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+  padding: 15px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.btn {
+  padding: 8px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+.btn:hover { border-color: var(--ink); }
+
+.btn-primary {
+  background: var(--guard);
+  color: white;
+  border-color: var(--guard);
+}
+
+.btn-primary:hover { opacity: 0.9; }
+
+.stepper-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+  margin: 20px 0;
+}
+
+@media (max-width: 1200px) {
+  .stepper-panels { grid-template-columns: 1fr; }
+}
+
+.stepper-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.stepper-panel h3 {
+  margin-top: 0;
+  font-size: 1.1em;
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 5px;
+  color: var(--ink);
+}
+
+#graph-svg { display: block; width: 100%; height: auto; }
+
+#tree-canvas {
+  display: block;
+  width: 100%;
+  cursor: pointer;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.stepper-caption {
+  margin: 10px 0;
+  padding: 12px;
+  background: var(--ghost);
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.stepper-details {
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.stepper-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 15px;
+  margin: 15px 0;
+}
+
+.stepper-stats > div {
+  text-align: center;
+}
+
+.stepper-stats .num {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.stepper-stats .lab {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.verification {
+  margin-top: 40px;
+}
+
+#verify-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 15px 0;
+  font-size: 14px;
+}
+
+#verify-table th,
+#verify-table td {
+  border: 1px solid var(--line);
+  padding: 8px;
+  text-align: left;
+}
+
+#verify-table th {
+  background: var(--ghost);
+  font-weight: 600;
+}
+</style>
+
+<script>
+(function() {
+'use strict';
+
+const SVGNS = "http://www.w3.org/2000/svg";
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+// ========== Bitset operations ==========
+const bsNew = n => new Uint32Array((n + 31) >>> 5);
+function bsFull(n) {
+  const b = bsNew(n);
+  for (let i = 0; i < n; i++) b[i >>> 5] |= 1 << (i & 31);
+  return b;
+}
+function bsAnd(a, b) {
+  const r = new Uint32Array(a.length);
+  for (let i = 0; i < a.length; i++) r[i] = a[i] & b[i];
+  return r;
+}
+function bsAndNot(a, b) {
+  const r = new Uint32Array(a.length);
+  for (let i = 0; i < a.length; i++) r[i] = a[i] & ~b[i];
+  return r;
+}
+function pop32(x) {
+  x -= (x >>> 1) & 0x55555555;
+  x = (x & 0x33333333) + ((x >>> 2) & 0x33333333);
+  return Math.imul((x + (x >>> 4)) & 0x0F0F0F0F, 0x01010101) >>> 24;
+}
+function bsCount(a) {
+  let c = 0;
+  for (let i = 0; i < a.length; i++) c += pop32(a[i]);
+  return c;
+}
+function bsCountAndNot(a, b) {
+  let c = 0;
+  for (let i = 0; i < a.length; i++) c += pop32((a[i] & ~b[i]) >>> 0);
+  return c;
+}
+const bsHas = (a, i) => (a[i >>> 5] >>> (i & 31)) & 1;
+function bsList(a) {
+  const r = [];
+  for (let w = 0; w < a.length; w++) {
+    let x = a[w] | 0;
+    while (x) {
+      const t = x & -x;
+      r.push(w * 32 + 31 - Math.clz32(t));
+      x ^= t;
+    }
+  }
+  return r;
+}
+const bsEmpty = a => a.every(x => x === 0);
+
+// ========== Build H_k graph ==========
+function buildH(k, w) {
+  const V = [];
+  // M vertices (pairs)
+  for (let i = 0; i < k; i++) {
+    V.push({ t: "m", i, label: "a" + (i + 1) });
+    V.push({ t: "m", i, label: "b" + (i + 1) });
+  }
+  // U vertices (guards)
+  for (let i = 0; i < k; i++) {
+    V.push({ t: "g", i, label: "g" + (i + 1) });
+  }
+  // W vertices (witnesses)
+  for (let c = 0; c < 2 * k; c++) {
+    for (let j = 0; j < w; j++) {
+      V.push({ t: "w", c, j, label: "w" + (c + 1) + "_" + (j + 1) });
+    }
+  }
+  
+  const n = V.length;
+  
+  const nonAdj = (x, y) => {
+    if (x === y) return true;
+    const X = V[x], Y = V[y];
+    if (X.t === "g" && Y.t === "g") return true;
+    if (X.t === "w" && Y.t === "w") return true;
+    if (X.t === "g" && Y.t === "m" && Y.i === X.i) return true;
+    if (Y.t === "g" && X.t === "m" && X.i === Y.i) return true;
+    if (X.t === "w" && Y.t === "m" && X.c === y) return true;
+    if (Y.t === "w" && X.t === "m" && Y.c === x) return true;
+    return false;
+  };
+  
+  const adj = V.map(() => bsNew(n));
+  for (let x = 0; x < n; x++) {
+    for (let y = x + 1; y < n; y++) {
+      if (!nonAdj(x, y)) {
+        adj[x][y >>> 5] |= 1 << (y & 31);
+        adj[y][x >>> 5] |= 1 << (x & 31);
+      }
+    }
+  }
+  
+  const witOf = c => {
+    const r = [];
+    for (let j = 0; j < w; j++) r.push(2 * k + k + c * w + j);
+    return r;
+  };
+  
+  return { k, w, n, V, adj, nonAdj, witOf };
+}
+
+// ========== Check guided call conditions ==========
+function guidedParts(H, Q, CAND) {
+  const k = H.k;
+  let g1 = true;
+  const used = new Set();
+  
+  for (const q of Q) {
+    if (q >= 2 * k || used.has(q >> 1)) {
+      g1 = false;
+      break;
+    }
+    used.add(q >> 1);
+  }
+  
+  let g2 = true, g3 = true;
+  if (g1) {
+    for (let p = 0; p < k; p++) {
+      if (!used.has(p) && !(bsHas(CAND, 2 * p) && bsHas(CAND, 2 * p + 1))) {
+        g2 = false;
+      }
+    }
+    for (let c = 0; c < 2 * k; c++) {
+      if (Q.includes(c)) continue;
+      for (const x of H.witOf(c)) {
+        if (!bsHas(CAND, x)) {
+          g3 = false;
+          break;
+        }
+      }
+    }
+  } else {
+    g2 = g3 = false;
+  }
+  
+  return [g1, g2, g3];
+}
+
+// ========== CLIQUES algorithm with recording ==========
+function runCliques(H) {
+  const calls = [];
+  const Q = [];
+  
+  function expand(SUBG, CAND, parent, via) {
+    const parts = guidedParts(H, Q, CAND);
+    const rec = {
+      id: calls.length,
+      parent,
+      via,
+      depth: parent < 0 ? 0 : calls[parent].depth + 1,
+      Q: Q.slice(),
+      SUBG: SUBG.slice(),
+      CAND: CAND.slice(),
+      children: [],
+      guided: parts[0] && parts[1] && parts[2],
+      parts
+    };
+    calls.push(rec);
+    if (parent >= 0) calls[parent].children.push(rec.id);
+    
+    if (bsEmpty(SUBG)) {
+      rec.output = true;
+      return;
+    }
+    
+    // Find pivot
+    let best = Infinity;
+    let ties = [];
+    for (const u of bsList(SUBG)) {
+      const s = bsCountAndNot(CAND, H.adj[u]);
+      if (s < best) {
+        best = s;
+        ties = [u];
+      } else if (s === best) {
+        ties.push(u);
+      }
+    }
+    
+    // Deterministic tie-break: smallest label
+    const u = ties.sort((a, b) => a - b)[0];
+    
+    // Branch vertices: CAND \ N(u)
+    let ext = bsList(bsAndNot(CAND, H.adj[u]));
+    ext.sort((a, b) => a - b); // deterministic order
+    
+    rec.pivot = u;
+    rec.score = best;
+    rec.ties = ties;
+    rec.branch = ext;
+    
+    const cand = CAND.slice();
+    for (const q of ext) {
+      Q.push(q);
+      expand(bsAnd(SUBG, H.adj[q]), bsAnd(cand, H.adj[q]), rec.id, q);
+      Q.pop();
+      cand[q >>> 5] &= ~(1 << (q & 31));
+    }
+  }
+  
+  expand(bsFull(H.n), bsFull(H.n), -1, -1);
+  return calls;
+}
+
+// ========== Drawing ==========
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+function drawGraph(svg, H, call) {
+  svg.textContent = "";
+  const w = 800, h = 500;
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  
+  const guardC = css("--guard");
+  const pairC = css("--pair");
+  const witC = css("--wit");
+  const ghostC = css("--ghost");
+  const lineC = css("--line");
+  const inkC = css("--ink");
+  
+  // Layout: guards top, pairs middle, witnesses bottom
+  const pos = [];
+  const k = H.k;
+  const spacing = Math.min(120, 600 / (2 * k));
+  
+  // Pairs (M)
+  for (let i = 0; i < k; i++) {
+    pos.push({ x: 200 + i * spacing * 2, y: 200 });
+    pos.push({ x: 200 + i * spacing * 2 + spacing, y: 200 });
+  }
+  // Guards (U)
+  for (let i = 0; i < k; i++) {
+    pos.push({ x: 200 + i * spacing * 2 + spacing / 2, y: 100 });
+  }
+  // Witnesses (W)
+  for (let c = 0; c < 2 * k; c++) {
+    const baseX = pos[c].x;
+    for (let j = 0; j < H.w; j++) {
+      pos.push({ x: baseX + (j - (H.w - 1) / 2) * 15, y: 350 });
+    }
+  }
+  
+  const Qset = new Set(call.Q);
+  const branch = new Set(call.branch || []);
+  
+  // Draw non-edges (dashed lines) for illustration
+  const g = el("g", {}, svg);
+  for (let x = 0; x < H.n; x++) {
+    for (let y = x + 1; y < H.n; y++) {
+      if (H.nonAdj(x, y) && H.V[x].t !== "w" && H.V[y].t !== "w") {
+        el("line", {
+          x1: pos[x].x, y1: pos[x].y,
+          x2: pos[y].x, y2: pos[y].y,
+          stroke: "#aaa",
+          "stroke-width": 0.5,
+          "stroke-dasharray": "3 3",
+          opacity: 0.3
+        }, g);
+      }
+    }
+  }
+  
+  // Draw vertices
+  for (let v = 0; v < H.n; v++) {
+    const V = H.V[v];
+    const p = pos[v];
+    let r = V.t === "w" ? 4 : 10;
+    let fill = V.t === "g" ? css("--guard-soft") : V.t === "m" ? css("--pair-soft") : css("--wit-soft");
+    let stroke = V.t === "g" ? guardC : V.t === "m" ? pairC : witC;
+    let sw = 2;
+    
+    if (Qset.has(v)) {
+      fill = inkC;
+      sw = 3;
+    } else if (!bsHas(call.CAND, v)) {
+      fill = ghostC;
+      stroke = lineC;
+    }
+    
+    if (call.pivot === v) {
+      el("circle", {
+        cx: p.x, cy: p.y, r: r + 6,
+        fill: "none",
+        stroke: guardC,
+        "stroke-width": 3
+      }, svg);
+    }
+    
+    if (branch.has(v)) {
+      el("circle", {
+        cx: p.x, cy: p.y, r: r + 4,
+        fill: "none",
+        stroke: guardC,
+        "stroke-width": 1.5,
+        "stroke-dasharray": "3 2"
+      }, svg);
+    }
+    
+    el("circle", {
+      cx: p.x, cy: p.y, r,
+      fill, stroke,
+      "stroke-width": sw
+    }, svg);
+    
+    // Labels for guards and pairs
+    if (V.t === "g" || V.t === "m") {
+      const text = el("text", {
+        x: p.x,
+        y: p.y + (V.t === "g" ? 30 : V.label[0] === "a" ? -18 : 30),
+        "text-anchor": "middle",
+        "font-size": 12,
+        fill: inkC,
+        "font-weight": "600"
+      }, svg);
+      text.textContent = V.label;
+    }
+  }
+}
+
+function drawTree(canvas, calls, currentId) {
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth;
+  const h = 300;
+  
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+  
+  // Calculate layout
+  const leaves = new Array(calls.length).fill(0);
+  const x0 = new Array(calls.length).fill(0);
+  
+  for (let i = calls.length - 1; i >= 0; i--) {
+    const c = calls[i];
+    leaves[i] = c.children.length ? c.children.reduce((s, ch) => s + leaves[ch], 0) : 1;
+  }
+  
+  for (let i = 0; i < calls.length; i++) {
+    let x = x0[i];
+    for (const ch of calls[i].children) {
+      x0[ch] = x;
+      x += leaves[ch];
+    }
+  }
+  
+  const maxD = calls.reduce((m, c) => Math.max(m, c.depth), 0);
+  const total = leaves[0];
+  const rowH = Math.min(25, (h - 20) / (maxD + 1));
+  
+  // Draw boxes
+  for (let i = 0; i < calls.length; i++) {
+    const c = calls[i];
+    const x = (x0[i] / total) * (w - 20) + 10;
+    const width = (leaves[i] / total) * (w - 20);
+    const y = c.depth * rowH + 10;
+    
+    ctx.fillStyle = c.guided ? css("--guard") :
+                    c.output ? css("--pair") :
+                    i <= currentId ? css("--muted") : css("--ghost");
+    ctx.globalAlpha = i <= currentId && !c.guided ? (c.output ? 0.75 : 0.45) : 1;
+    ctx.fillRect(x, y, Math.max(width - 1, 1), rowH - 2);
+    ctx.globalAlpha = 1;
+    
+    if (i === currentId) {
+      ctx.strokeStyle = css("--ink");
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, Math.max(width - 1, 1), rowH - 2);
+    }
+  }
+}
+
+// ========== Generate caption ==========
+function generateCaption(H, call, prevCall) {
+  if (!call) return "読み込み中...";
+  
+  const parts = [];
+  
+  if (call.id === 0) {
+    parts.push("最初の呼び出しです。Q = ∅、CAND = すべての頂点。");
+  } else {
+    const qLabel = call.Q.map(v => H.V[v].label).join(", ");
+    parts.push(`Q = {${qLabel || "∅"}}`);
+  }
+  
+  if (call.output) {
+    parts.push("SUBG = ∅ なので、Q を極大クリークとして出力します。");
+    return parts.join(" ");
+  }
+  
+  const pivotV = H.V[call.pivot];
+  parts.push(`ピボットは ${pivotV.label}（${pivotV.t === "g" ? "guard" : pivotV.t === "m" ? "ペア" : "witness"}）。`);
+  
+  // Count non-adjacent candidates
+  parts.push(`${pivotV.label} とつながっていない候補は ${call.score} 個。`);
+  
+  if (call.branch && call.branch.length > 0) {
+    const branchLabels = call.branch.map(v => H.V[v].label).join(" と ");
+    parts.push(`分岐頂点は ${branchLabels}。`);
+    
+    if (call.branch.length === 2 && pivotV.t === "g") {
+      parts.push(`<strong>${pivotV.label} は自分のペアとつながっていないため、この2本に分岐します。</strong>`);
+    }
+  }
+  
+  if (call.guided) {
+    parts.push('<span style="color:var(--guard)"><strong>これは guided call です。</strong></span>');
+  }
+  
+  return parts.join(" ");
+}
+
+// ========== Main app state ==========
+let H = null;
+let calls = [];
+let currentStep = 0;
+let autoTimer = null;
+
+function init() {
+  // Build H_2 graph
+  H = buildH(2, 5);
+  console.log("Built H_2 graph:", H.n, "vertices");
+  
+  // Run CLIQUES
+  calls = runCliques(H);
+  console.log("CLIQUES completed:", calls.length, "calls");
+  
+  // Verify
+  const guidedCount = calls.filter(c => c.guided).length;
+  const maximalCount = calls.filter(c => c.output).length;
+  
+  const tbody = document.querySelector("#verify-table tbody");
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td>guided call の数</td>
+        <td>2<sup>k+1</sup> - 1 = 7</td>
+        <td>${guidedCount}</td>
+        <td><strong style="color:${guidedCount === 7 ? 'green' : 'red'}">${guidedCount === 7 ? '✓ 合格' : '✗ 不合格'}</strong></td>
+      </tr>
+      <tr>
+        <td>極大クリークの数</td>
+        <td>≤ n² = 676</td>
+        <td>${maximalCount}</td>
+        <td><strong style="color:green">✓ 合格</strong></td>
+      </tr>
+      <tr>
+        <td>総呼び出し回数</td>
+        <td>-</td>
+        <td>${calls.length}</td>
+        <td>-</td>
+      </tr>
+    `;
+  }
+  
+  const verifyStats = document.getElementById("verify-stats");
+  if (verifyStats) {
+    verifyStats.innerHTML = `
+      <div>
+        <div class="num">${guidedCount}</div>
+        <div class="lab">guided calls</div>
+      </div>
+      <div>
+        <div class="num">${maximalCount}</div>
+        <div class="lab">極大クリーク</div>
+      </div>
+      <div>
+        <div class="num">${calls.length}</div>
+        <div class="lab">総呼び出し</div>
+      </div>
+    `;
+  }
+  
+  render();
+}
+
+function render() {
+  if (calls.length === 0) return;
+  
+  const call = calls[currentStep];
+  const prevCall = currentStep > 0 ? calls[currentStep - 1] : null;
+  
+  // Draw graph
+  const graphSvg = document.getElementById("graph-svg");
+  if (graphSvg) drawGraph(graphSvg, H, call);
+  
+  // Draw tree
+  const treeCanvas = document.getElementById("tree-canvas");
+  if (treeCanvas) drawTree(treeCanvas, calls, currentStep);
+  
+  // Caption
+  const caption = document.getElementById("caption");
+  if (caption) caption.innerHTML = generateCaption(H, call, prevCall);
+  
+  // Details
+  const details = document.getElementById("details");
+  if (details) {
+    const detailsArr = [];
+    detailsArr.push(`<p><strong>呼び出し ${currentStep + 1} / ${calls.length}</strong></p>`);
+    detailsArr.push(`<p>深さ: ${call.depth}</p>`);
+    detailsArr.push(`<p>|CAND| = ${bsCount(call.CAND)}</p>`);
+    if (!call.output) {
+      detailsArr.push(`<p>|SUBG| = ${bsCount(call.SUBG)}</p>`);
+    }
+    details.innerHTML = detailsArr.join("");
+  }
+  
+  // Stats
+  const doneCalls = calls.slice(0, currentStep + 1);
+  const doneGuided = doneCalls.filter(c => c.guided).length;
+  const doneOutput = doneCalls.filter(c => c.output).length;
+  
+  const stats = document.getElementById("stats");
+  if (stats) {
+    stats.innerHTML = `
+      <div>
+        <div class="num">${currentStep + 1}</div>
+        <div class="lab">現在のステップ</div>
+      </div>
+      <div>
+        <div class="num">${doneGuided}</div>
+        <div class="lab">guided calls</div>
+      </div>
+      <div>
+        <div class="num">${doneOutput}</div>
+        <div class="lab">出力済み</div>
+      </div>
+    `;
+  }
+  
+  // Legend
+  const legend = document.getElementById("legend");
+  if (legend) {
+    legend.innerHTML = `
+      <span class="legend-item"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="${css("--guard-soft")}" stroke="${css("--guard")}" stroke-width="2"/></svg>guard</span>
+      <span class="legend-item"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="${css("--pair-soft")}" stroke="${css("--pair")}" stroke-width="2"/></svg>ペア</span>
+      <span class="legend-item"><svg width="20" height="20"><circle cx="10" cy="10" r="6" fill="${css("--wit-soft")}" stroke="${css("--wit")}" stroke-width="2"/></svg>witness</span>
+      <span class="legend-item"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="${css("--ink")}" stroke="${css("--pair")}" stroke-width="2"/></svg>Q に含む</span>
+      <span class="legend-item"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="${css("--ghost")}" stroke="${css("--line")}" stroke-width="2"/></svg>候補外</span>
+    `;
+  }
+}
+
+function goToStep(step) {
+  currentStep = Math.max(0, Math.min(calls.length - 1, step));
+  render();
+}
+
+function nextGuidedCall() {
+  for (let i = currentStep + 1; i < calls.length; i++) {
+    if (calls[i].guided) {
+      goToStep(i);
+      return;
+    }
+  }
+  goToStep(calls.length - 1);
+}
+
+function toggleAuto() {
+  if (autoTimer) {
+    clearInterval(autoTimer);
+    autoTimer = null;
+    const btn = document.getElementById("btn-auto");
+    if (btn) btn.textContent = "自動再生";
+  } else {
+    const btn = document.getElementById("btn-auto");
+    if (btn) btn.textContent = "停止";
+    autoTimer = setInterval(() => {
+      if (currentStep >= calls.length - 1) {
+        clearInterval(autoTimer);
+        autoTimer = null;
+        if (btn) btn.textContent = "自動再生";
+      } else {
+        goToStep(currentStep + 1);
+      }
+    }, 800);
+  }
+}
+
+// Event listeners
+const btnFirst = document.getElementById("btn-first");
+if (btnFirst) btnFirst.addEventListener("click", () => goToStep(0));
+
+const btnBack = document.getElementById("btn-back");
+if (btnBack) btnBack.addEventListener("click", () => goToStep(currentStep - 1));
+
+const btnNext = document.getElementById("btn-next");
+if (btnNext) btnNext.addEventListener("click", () => goToStep(currentStep + 1));
+
+const btnAuto = document.getElementById("btn-auto");
+if (btnAuto) btnAuto.addEventListener("click", toggleAuto);
+
+const btnGuided = document.getElementById("btn-guided");
+if (btnGuided) btnGuided.addEventListener("click", nextGuidedCall);
+
+const treeCanvas = document.getElementById("tree-canvas");
+if (treeCanvas) {
+  treeCanvas.addEventListener("click", (e) => {
+    const rect = e.target.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const leaves = new Array(calls.length).fill(0);
+    const x0 = new Array(calls.length).fill(0);
+    
+    for (let i = calls.length - 1; i >= 0; i--) {
+      const c = calls[i];
+      leaves[i] = c.children.length ? c.children.reduce((s, ch) => s + leaves[ch], 0) : 1;
+    }
+    
+    for (let i = 0; i < calls.length; i++) {
+      let xp = x0[i];
+      for (const ch of calls[i].children) {
+        x0[ch] = xp;
+        xp += leaves[ch];
+      }
+    }
+    
+    const total = leaves[0];
+    const maxD = calls.reduce((m, c) => Math.max(m, c.depth), 0);
+    const rowH = Math.min(25, (rect.height - 20) / (maxD + 1));
+    
+    const depth = Math.floor((y - 10) / rowH);
+    
+    for (let i = 0; i < calls.length; i++) {
+      const c = calls[i];
+      if (c.depth === depth) {
+        const xStart = (x0[i] / total) * (rect.width - 20) + 10;
+        const width = (leaves[i] / total) * (rect.width - 20);
+        if (x >= xStart && x <= xStart + width) {
+          goToStep(i);
+          break;
+        }
+      }
+    }
+  });
+}
+
+// Initialize on load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+})();
+</script>
+
+</section>
+
+<!-- サマリー -->
+<section id="summary">
+  <div class="summary-box">
+    <h3>💡 1分で説明する方法</h3>
+    
+    <p><strong>H<sub>k</sub> は、極大クリーク列挙アルゴリズム CLIQUES の最悪ケースを示すグラフです。</strong></p>
+    
+    <ol style="line-height: 2;">
+      <li><strong>グラフ</strong>は点（頂点）と線（辺）でできた構造</li>
+      <li><strong>クリーク</strong>は全員が全員とつながった頂点の集合、<strong>極大クリーク</strong>はもう拡張できないクリーク</li>
+      <li><strong>CLIQUES</strong>は「ピボット」で枝刈りして賢く探索するが、それでも H<sub>k</sub> では苦戦する</li>
+      <li><strong>H<sub>k</sub> の構造</strong>：
+        <ul>
+          <li><span style="color: var(--guard);">guard</span>：常にピボットになり、2分岐を生む</li>
+          <li><span style="color: var(--pair);">pair</span>：2分岐の分岐先（M はクリーク）</li>
+          <li><span style="color: var(--wit);">witness</span>：他の頂点がピボットにならないよう邪魔</li>
+        </ul>
+      </li>
+      <li><strong>結果</strong>：極大クリークは O(<i>n</i>²) 個だが、再帰呼び出しは Ω(2<sup>√<i>n</i></sup>) 回 → CLIQUES は output-polynomial ではない</li>
+    </ol>
+    
+    <p><strong>ポイント：</strong> 答えが少なくても、計算は爆発しうる。アルゴリズムの最悪ケース分析の重要性を示す例です。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>この解説は、Tomita-Tanaka-Takahashi (2006) の論文に基づいています。</p>
+  <p>数値は小規模な <i>k</i> について検証済みです。</p>
+  <p><a href="../../">トップページへ戻る</a></p>
+</footer>
+
+</div>
+
+</body>
+</html>
