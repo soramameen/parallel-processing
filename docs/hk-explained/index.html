@@ -191,6 +191,15 @@ p {
 .legend-item {
   display: flex;
   align-items: center;
+  gap: 6px;
+}
+
+.legend-mark {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  align-items: center;
   gap: 8px;
 }
 
@@ -1626,37 +1635,47 @@ function el(tag, attrs, parent) {
 
 function drawGraph(svg, H, call) {
   svg.textContent = "";
-  const w = 800, h = 600;
-  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  const vb = { w: 600, h: 420 };
+  svg.setAttribute("viewBox", `0 0 ${vb.w} ${vb.h}`);
+  svg.setAttribute("width", "100%");
+  svg.setAttribute("height", "auto");
   
-  // Colors
-  const guardC = "#C2521B";  // Orange
-  const pairC = "#2C61A3";   // Blue
-  const witC = "#2F7563";    // Green
-  const ghostC = css("--ghost");
-  const lineC = css("--line");
-  const inkC = css("--ink");
-  const redC = "#E53E3E";    // Red for non-edges
+  // Fixed colors
+  const guardC = "#C2521B";    // Orange
+  const pairC = "#2C61A3";     // Blue
+  const witC = "#2F7563";      // Green
+  const edgeC = "#999";        // Light gray for structure edges
+  const redC = "#EF4444";      // Red for non-edges
+  const yellowC = "#EAB308";   // Yellow for branch candidates
+  const inkC = "#000";         // Black for Q ring
   
-  // Layout
-  const pos = [];
   const k = H.k;
-  const spacing = 150;
+  const pos = [];
   
-  // Pairs (M) - middle
-  for (let i = 0; i < k; i++) {
-    pos.push({ x: 250 + i * spacing, y: 300 });
-    pos.push({ x: 250 + i * spacing + 80, y: 300 });
+  // Row 1: Guards g1, g2 at y=80
+  const guardSpacing = 200;
+  const guardStartX = 200;
+  for (let i = 0; i < 2*k; i++) {
+    pos.push(null); // placeholders for pairs
   }
-  // Guards (U) - top
   for (let i = 0; i < k; i++) {
-    pos.push({ x: 250 + i * spacing + 40, y: 150 });
+    pos[2*k + i] = { x: guardStartX + i * guardSpacing, y: 80 };
   }
-  // Witnesses (W) - bottom
-  for (let c = 0; c < 2 * k; c++) {
-    const baseX = pos[c].x;
+  
+  // Row 2: Pairs a1, b1, a2, b2 at y=200
+  const pairSpacing = 100;
+  const pairStartX = 100;
+  for (let i = 0; i < k; i++) {
+    pos[2*i] = { x: pairStartX + (2*i) * pairSpacing, y: 200 };
+    pos[2*i+1] = { x: pairStartX + (2*i+1) * pairSpacing, y: 200 };
+  }
+  
+  // Row 3: Witnesses in 4 groups of 5 at y=340
+  for (let c = 0; c < 2*k; c++) {
+    const ownerX = pos[c].x;
     for (let j = 0; j < H.w; j++) {
-      pos.push({ x: baseX + (j - (H.w - 1) / 2) * 16, y: 470 });
+      const witIdx = 2*k + k + c*H.w + j;
+      pos[witIdx] = { x: ownerX + (j - (H.w-1)/2) * 18, y: 340 };
     }
   }
   
@@ -1664,116 +1683,153 @@ function drawGraph(svg, H, call) {
   const branch = new Set(call.branch || []);
   const inSUBG = v => bsHas(call.SUBG, v);
   
-  // Draw pair clique edges (M edges)
+  // Draw edges layer
   const edgeG = el("g", {}, svg);
-  for (let x = 0; x < 2 * k; x++) {
-    for (let y = x + 1; y < 2 * k; y++) {
-      if (inSUBG(x) && inSUBG(y)) {
+  
+  // 1. Pair clique edges (solid gray)
+  for (let x = 0; x < 2*k; x++) {
+    for (let y = x+1; y < 2*k; y++) {
+      el("line", {
+        x1: pos[x].x, y1: pos[x].y,
+        x2: pos[y].x, y2: pos[y].y,
+        stroke: edgeC,
+        "stroke-width": 1.5,
+        opacity: 0.4
+      }, edgeG);
+    }
+  }
+  
+  // 2. Guards to non-own pairs (thin light gray for structure)
+  for (let g = 2*k; g < 3*k; g++) {
+    const gi = H.V[g].i;
+    for (let p = 0; p < 2*k; p++) {
+      if (H.V[p].i !== gi) {
         el("line", {
-          x1: pos[x].x, y1: pos[x].y,
-          x2: pos[y].x, y2: pos[y].y,
-          stroke: pairC,
-          "stroke-width": 1,
-          opacity: 0.2
+          x1: pos[g].x, y1: pos[g].y,
+          x2: pos[p].x, y2: pos[p].y,
+          stroke: edgeC,
+          "stroke-width": 0.8,
+          opacity: 0.25
         }, edgeG);
       }
     }
   }
   
-  // Draw pivot's non-edges (if pivot exists)
+  // 3. Pivot's non-edges (red dashed)
   if (call.pivot != null) {
     const pv = call.pivot;
     for (let v = 0; v < H.n; v++) {
-      if (v !== pv && bsHas(call.CAND, v) && H.nonAdj(pv, v) && inSUBG(v)) {
+      if (v !== pv && bsHas(call.CAND, v) && H.nonAdj(pv, v)) {
         el("line", {
           x1: pos[pv].x, y1: pos[pv].y,
           x2: pos[v].x, y2: pos[v].y,
           stroke: redC,
-          "stroke-width": 2,
-          "stroke-dasharray": "5 3",
-          opacity: 0.7
+          "stroke-width": 2.5,
+          "stroke-dasharray": "6 3",
+          opacity: 0.8
         }, edgeG);
       }
     }
   }
   
   // Draw vertices
+  const vertG = el("g", {}, svg);
+  
   for (let v = 0; v < H.n; v++) {
     const V = H.V[v];
     const p = pos[v];
     
-    if (!inSUBG(v)) {
-      // Faded out
-      el("circle", {
-        cx: p.x, cy: p.y, r: 3,
-        fill: ghostC,
-        opacity: 0.3
-      }, svg);
-      continue;
-    }
-    
-    let r = V.t === "w" ? 6 : 14;
-    let fill, stroke;
-    
+    // Determine size and color
+    let r, baseColor;
     if (V.t === "g") {
-      fill = Qset.has(v) ? guardC : "#F3D9C8";
-      stroke = guardC;
+      r = 18;
+      baseColor = guardC;
     } else if (V.t === "m") {
-      fill = Qset.has(v) ? pairC : "#D6E2F1";
-      stroke = pairC;
+      r = 18;
+      baseColor = pairC;
     } else {
-      fill = Qset.has(v) ? witC : "#D3E8E0";
-      stroke = witC;
+      r = 9;
+      baseColor = witC;
     }
     
-    let sw = 2;
-    if (Qset.has(v)) {
-      sw = 4;
-    } else if (!bsHas(call.CAND, v)) {
-      fill = ghostC;
-      stroke = lineC;
-    }
+    // Opacity: full color always, reduce for outside SUBG
+    const opacity = inSUBG(v) ? 1.0 : 0.35;
     
-    // Branch candidate ring
+    // Branch candidate: yellow halo
     if (branch.has(v)) {
       el("circle", {
-        cx: p.x, cy: p.y, r: r + 6,
+        cx: p.x, cy: p.y, r: r + 8,
         fill: "none",
-        stroke: guardC,
-        "stroke-width": 2,
-        "stroke-dasharray": "3 2"
-      }, svg);
+        stroke: yellowC,
+        "stroke-width": 4,
+        opacity: 0.7
+      }, vertG);
     }
     
-    // Pivot ring
-    if (call.pivot === v) {
+    // Current Q: thick black ring
+    if (Qset.has(v)) {
       el("circle", {
-        cx: p.x, cy: p.y, r: r + 10,
+        cx: p.x, cy: p.y, r: r + 5,
         fill: "none",
         stroke: inkC,
-        "stroke-width": 3
-      }, svg);
+        "stroke-width": 4
+      }, vertG);
     }
     
+    // Vertex circle
     el("circle", {
       cx: p.x, cy: p.y, r,
-      fill, stroke,
-      "stroke-width": sw
-    }, svg);
+      fill: baseColor,
+      stroke: baseColor,
+      "stroke-width": 2,
+      opacity
+    }, vertG);
     
-    // Labels
-    if (V.t !== "w" || H.w <= 3) {
-      const ty = V.t === "g" ? -22 : V.t === "m" ? (V.label[0] === "a" ? -22 : 30) : 18;
+    // Pivot: P marker
+    if (call.pivot === v) {
       const text = el("text", {
         x: p.x,
-        y: p.y + ty,
+        y: p.y + 1,
         "text-anchor": "middle",
-        "font-size": V.t === "w" ? 10 : 13,
-        fill: inkC,
-        "font-weight": V.t === "w" ? "400" : "600",
-        "font-family": "var(--font-mono)"
-      }, svg);
+        "dominant-baseline": "middle",
+        "font-size": r * 1.2,
+        "font-weight": "bold",
+        fill: "#FFF",
+        stroke: "#000",
+        "stroke-width": 0.5
+      }, vertG);
+      text.textContent = "P";
+    }
+    
+    // Labels
+    if (V.t === "g" || V.t === "m") {
+      // Guards and pairs: label inside
+      const text = el("text", {
+        x: p.x,
+        y: p.y + 1,
+        "text-anchor": "middle",
+        "dominant-baseline": "middle",
+        "font-size": 13,
+        "font-weight": "600",
+        "font-family": "monospace",
+        fill: "#FFF",
+        opacity
+      }, vertG);
       text.textContent = V.label;
+    } else if (V.t === "w") {
+      // Witnesses: simple 'w' label for middle witness in each group
+      if (V.j === Math.floor(H.w / 2)) {
+        const text = el("text", {
+          x: p.x,
+          y: p.y + r + 18,
+          "text-anchor": "middle",
+          "font-size": 10,
+          "font-family": "monospace",
+          fill: witC,
+          opacity: opacity * 0.8
+        }, vertG);
+        text.textContent = "w";
+      }
     }
   }
 }
@@ -1938,6 +1994,53 @@ function init() {
   render();
 }
 
+function drawLegend() {
+  const legend = document.getElementById("legend");
+  if (!legend || legend.hasChildNodes()) return;
+  
+  const items = [
+    { label: "ガード", color: "#C2521B" },
+    { label: "ペア", color: "#2C61A3" },
+    { label: "証人", color: "#2F7563" },
+    { label: "現在のQ", style: "border: 3px solid #000; border-radius: 50%; width: 14px; height: 14px;" },
+    { label: "ピボット", text: "P", bg: "#666", color: "#FFF" },
+    { label: "分岐候補", style: "border: 3px solid #EAB308; border-radius: 50%; width: 14px; height: 14px;" },
+    { label: "非辺", style: "width: 30px; height: 0; border-top: 2px dashed #EF4444;" },
+    { label: "SUBG外", color: "#999", opacity: 0.35 }
+  ];
+  
+  items.forEach(item => {
+    const span = document.createElement("span");
+    span.className = "legend-item";
+    
+    const mark = document.createElement("span");
+    mark.className = "legend-mark";
+    
+    if (item.style) {
+      mark.setAttribute("style", item.style);
+    } else if (item.text) {
+      mark.style.backgroundColor = item.bg || "#666";
+      mark.style.color = item.color || "#FFF";
+      mark.style.fontWeight = "bold";
+      mark.style.fontSize = "11px";
+      mark.style.display = "flex";
+      mark.style.alignItems = "center";
+      mark.style.justifyContent = "center";
+      mark.textContent = item.text;
+    } else {
+      mark.style.backgroundColor = item.color;
+      if (item.opacity) mark.style.opacity = item.opacity;
+    }
+    
+    const label = document.createElement("span");
+    label.textContent = item.label;
+    
+    span.appendChild(mark);
+    span.appendChild(label);
+    legend.appendChild(span);
+  });
+}
+
 function render() {
   if (calls.length === 0) return;
   
@@ -1945,6 +2048,8 @@ function render() {
   
   const graphSvg = document.getElementById("graph-svg");
   if (graphSvg) drawGraph(graphSvg, H, call);
+  
+  drawLegend();
   
   const treeCanvas = document.getElementById("tree-canvas");
   if (treeCanvas) drawTree(treeCanvas, calls, currentStep);
