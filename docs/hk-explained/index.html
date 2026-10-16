@@ -594,6 +594,8 @@ i.v {
   
   <p>重要な点は、<strong>H<sub>k</sub> というグラフでは、ピボットの選択によって分岐が<em>必ず2つ</em>になる</strong>ということです。</p>
   
+  <p>バックトラック探索では、現在構築中のクリークを <strong><i>Q</i></strong> と表します（<i>Q</i> = 「今まで選んだ頂点の集合」）。H<sub>k</sub> では、<i>Q</i> から出発して次の頂点を追加する際、ピボットの働きで必ず2つの分岐が生まれます：</p>
+  
   <div class="figure">
     <svg viewBox="0 0 500 200" width="500" height="200">
       <!-- 2分岐の木 -->
@@ -680,7 +682,56 @@ i.v {
 <section id="section6">
   <h2>6. H<sub>k</sub> の構造：3つの頂点タイプ</h2>
   
-  <p>H<sub>k</sub> は、<span class="highlight">3種類の頂点</span>を巧妙に組み合わせて作られています：</p>
+  <p>H<sub>k</sub> は、<span class="highlight">3種類の頂点</span>を巧妙に組み合わせて作られています。まず、具体例として最も小さい H<sub>1</sub> を見てみましょう：</p>
+  
+  <div class="figure">
+    <svg viewBox="0 0 600 500" width="600" height="500">
+  <line x1="300" y1="80" x2="120" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="300" y1="80" x2="170" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="300" y1="80" x2="220" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="300" y1="80" x2="270" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="300" y1="80" x2="330" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="300" y1="80" x2="380" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="300" y1="80" x2="430" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="300" y1="80" x2="480" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="220" y1="200" x2="380" y2="200" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="220" y1="200" x2="330" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="220" y1="200" x2="380" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="220" y1="200" x2="430" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="220" y1="200" x2="480" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="380" y1="200" x2="120" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="380" y1="200" x2="170" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="380" y1="200" x2="220" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="380" y1="200" x2="270" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <circle cx="300" cy="80" r="18" fill="var(--guard-soft)" stroke="var(--guard)" stroke-width="2.5" />
+  <text x="300" y="85" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">g1</text>
+  <circle cx="220" cy="200" r="18" fill="var(--pair-soft)" stroke="var(--pair)" stroke-width="2.5" />
+  <text x="220" y="205" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">a1</text>
+  <circle cx="380" cy="200" r="18" fill="var(--pair-soft)" stroke="var(--pair)" stroke-width="2.5" />
+  <text x="380" y="205" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">b1</text>
+  <circle cx="120" cy="350" r="12" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2.5" />
+  <text x="120" y="355" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">w1</text>
+  <circle cx="170" cy="350" r="12" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2.5" />
+  <text x="170" y="355" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">w2</text>
+  <circle cx="220" cy="350" r="12" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2.5" />
+  <text x="220" y="355" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">w3</text>
+  <circle cx="270" cy="350" r="12" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2.5" />
+  <text x="270" y="355" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">w4</text>
+  <circle cx="330" cy="350" r="12" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2.5" />
+  <text x="330" y="355" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">w5</text>
+  <circle cx="380" cy="350" r="12" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2.5" />
+  <text x="380" y="355" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">w6</text>
+  <circle cx="430" cy="350" r="12" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2.5" />
+  <text x="430" y="355" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">w7</text>
+  <circle cx="480" cy="350" r="12" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2.5" />
+  <text x="480" y="355" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">w8</text>
+  <text x="300" y="30" font-size="16" font-weight="700" text-anchor="middle" fill="var(--ink)">H₁ 完全図（n=11, m=17, k=1）</text>
+  <text x="300" y="480" font-size="14" text-anchor="middle" fill="var(--muted)">すべての辺を表示（17本）</text>
+</svg>
+    <p class="figure-caption">図6-0：H₁ の完全図。<i>k</i>=1 の最小例。ガード g₁（オレンジ）、ペア a₁・b₁（青）、証人 w₁〜w₈（緑）の3種類</p>
+  </div>
+  
+  <p>この図から、3種類の頂点の役割が見えてきます。それでは、一般の H<sub>k</sub> の構造を詳しく見ていきましょう：</p>
   
   <div class="legend">
     <div class="legend-item">
@@ -704,6 +755,16 @@ i.v {
   </div>
   
   <h3>3つの頂点タイプ</h3>
+  
+  <p>H<sub>k</sub> の頂点は、次の3つのグループに分かれます。ここで、<strong><i>U</i></strong>、<strong><i>M</i></strong>、<strong><i>W</i></strong> という記号を導入します：</p>
+  
+  <ul>
+    <li><strong><i>U</i>（ガードの集合）</strong>：guard 頂点 <i>g</i><sub>1</sub>, …, <i>g<sub>k</sub></i> をまとめた集合。<i>U</i> = {<i>g</i><sub>1</sub>, …, <i>g<sub>k</sub></i>}</li>
+    <li><strong><i>M</i>（ペアの集合）</strong>：すべてのペア頂点 <i>a</i><sub>1</sub>, <i>b</i><sub>1</sub>, …, <i>a<sub>k</sub></i>, <i>b<sub>k</sub></i> をまとめた集合。これらは<em>全て互いに辺がある</em>ので、<i>M</i> は1つの大きなクリークです（<span style="font-weight: 600;">ペアの点をまとめた集まり＝M</span>）</li>
+    <li><strong><i>W</i>（証人の集合）</strong>：すべての witness 頂点をまとめた集合</li>
+  </ul>
+  
+  <p>これらの記号を使って、詳細を表にまとめます：</p>
   
   <table>
     <tr>
@@ -742,6 +803,87 @@ i.v {
   </ol>
   
   <p><strong>それ以外の頂点対はすべて辺あり</strong>です。</p>
+  
+  <p>この構造を具体的に見るため、<i>k</i> = 2 の H<sub>2</sub> の完全な図を見てみましょう：</p>
+  
+  <div class="figure">
+    <svg viewBox="0 0 800 600" width="800" height="600">
+  <text x="400" y="30" font-size="18" font-weight="700" text-anchor="middle" fill="var(--ink)">H₂ の構造（n=26, m=110, k=2）</text>
+  <text x="400" y="50" font-size="14" text-anchor="middle" fill="var(--muted)">非エッジのみ破線で表示（完全グラフから 215 本削除）</text>
+  <line x1="250" y1="200" x2="350" y2="200" stroke="var(--pair)" stroke-width="2" opacity="0.6" />
+  <line x1="250" y1="200" x2="450" y2="200" stroke="var(--pair)" stroke-width="2" opacity="0.6" />
+  <line x1="250" y1="200" x2="550" y2="200" stroke="var(--pair)" stroke-width="2" opacity="0.6" />
+  <line x1="350" y1="200" x2="450" y2="200" stroke="var(--pair)" stroke-width="2" opacity="0.6" />
+  <line x1="350" y1="200" x2="550" y2="200" stroke="var(--pair)" stroke-width="2" opacity="0.6" />
+  <line x1="450" y1="200" x2="550" y2="200" stroke="var(--pair)" stroke-width="2" opacity="0.6" />
+  <line x1="300" y1="80" x2="500" y2="80" stroke="var(--guard)" stroke-width="2" stroke-dasharray="5 3" opacity="0.5" />
+  <line x1="300" y1="80" x2="250" y2="200" stroke="var(--guard)" stroke-width="2" stroke-dasharray="5 3" opacity="0.5" />
+  <line x1="300" y1="80" x2="350" y2="200" stroke="var(--guard)" stroke-width="2" stroke-dasharray="5 3" opacity="0.5" />
+  <line x1="500" y1="80" x2="450" y2="200" stroke="var(--guard)" stroke-width="2" stroke-dasharray="5 3" opacity="0.5" />
+  <line x1="500" y1="80" x2="550" y2="200" stroke="var(--guard)" stroke-width="2" stroke-dasharray="5 3" opacity="0.5" />
+  <line x1="250" y1="200" x2="150" y2="350" stroke="var(--guard)" stroke-width="2" stroke-dasharray="5 3" opacity="0.5" />
+  <line x1="250" y1="200" x2="190" y2="350" stroke="var(--guard)" stroke-width="2" stroke-dasharray="5 3" opacity="0.5" />
+  <line x1="350" y1="200" x2="280" y2="400" stroke="var(--guard)" stroke-width="2" stroke-dasharray="5 3" opacity="0.5" />
+  <line x1="350" y1="200" x2="320" y2="400" stroke="var(--guard)" stroke-width="2" stroke-dasharray="5 3" opacity="0.5" />
+  <circle cx="300" cy="80" r="16" fill="var(--guard-soft)" stroke="var(--guard)" stroke-width="2" />
+  <text x="300" y="84" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">g1</text>
+  <circle cx="500" cy="80" r="16" fill="var(--guard-soft)" stroke="var(--guard)" stroke-width="2" />
+  <text x="500" y="84" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">g2</text>
+  <circle cx="250" cy="200" r="16" fill="var(--pair-soft)" stroke="var(--pair)" stroke-width="2" />
+  <text x="250" y="204" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">a1</text>
+  <circle cx="350" cy="200" r="16" fill="var(--pair-soft)" stroke="var(--pair)" stroke-width="2" />
+  <text x="350" y="204" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">b1</text>
+  <circle cx="450" cy="200" r="16" fill="var(--pair-soft)" stroke="var(--pair)" stroke-width="2" />
+  <text x="450" y="204" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">a2</text>
+  <circle cx="550" cy="200" r="16" fill="var(--pair-soft)" stroke="var(--pair)" stroke-width="2" />
+  <text x="550" y="204" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">b2</text>
+  <circle cx="150" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <text x="150" y="354" font-size="10" font-weight="700" text-anchor="middle" fill="var(--ink)">w1</text>
+  <circle cx="190" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="230" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="270" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="310" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="280" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <text x="280" y="404" font-size="10" font-weight="700" text-anchor="middle" fill="var(--ink)">w6</text>
+  <circle cx="320" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="360" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="400" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="440" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="420" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <text x="420" y="404" font-size="10" font-weight="700" text-anchor="middle" fill="var(--ink)">w11</text>
+  <circle cx="460" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="500" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="540" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="580" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="550" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <text x="550" y="354" font-size="10" font-weight="700" text-anchor="middle" fill="var(--ink)">w16</text>
+  <circle cx="590" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="630" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="670" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="710" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <text x="150" y="320" font-size="13" font-weight="700" text-anchor="start" fill="var(--guard)">U (guards)</text>
+  <text x="400" y="170" font-size="13" font-weight="700" text-anchor="middle" fill="var(--pair)">M (pair clique)</text>
+  <text x="170" y="480" font-size="12" text-anchor="start" fill="var(--wit)">a₁の証人(5個)</text>
+  <text x="300" y="530" font-size="12" text-anchor="start" fill="var(--wit)">b₁の証人(5個)</text>
+  <text x="440" y="530" font-size="12" text-anchor="start" fill="var(--wit)">a₂の証人(5個)</text>
+  <text x="570" y="480" font-size="12" text-anchor="start" fill="var(--wit)">b₂の証人(5個)</text>
+  <g transform="translate(50, 540)">
+    <line x1="0" y1="0" x2="30" y2="0" stroke="var(--pair)" stroke-width="2" />
+    <text x="35" y="5" font-size="12" fill="var(--muted)">辺あり（M内）</text>
+    <line x1="150" y1="0" x2="180" y2="0" stroke="var(--guard)" stroke-width="2" stroke-dasharray="5 3" />
+    <text x="185" y="5" font-size="12" fill="var(--muted)">辺なし（主要なもののみ表示）</text>
+  </g>
+</svg>
+    <p class="figure-caption">図6-1：H₂ の構造（実際のエッジリストから生成）。<i>M</i> の4頂点は完全に接続されたクリーク（実線）。破線は主要な非エッジのみ表示（guard同士、guard-ペア、証人-所有者の一部）。証人同士の非エッジ190本は省略</p>
+  </div>
+  
+  <div class="callout">
+    <p><strong>注：</strong> H<sub>2</sub> は26頂点あり、完全グラフなら 26×25/2 = 325 本の辺があるはずですが、非エッジ 215 本を除くと 110 本の辺になります。図では全ての辺を描くと見にくくなるため、<i>M</i> のクリーク構造と主要な非エッジだけを強調しています。</p>
+  </div>
+  
+  <h3>構造の概念図（簡略版）</h3>
+  
+  <p>上の詳細図をより抽象的に表現すると、次のようになります：</p>
   
   <div class="figure">
     <svg viewBox="0 0 600 400" width="600" height="400">
@@ -826,7 +968,7 @@ i.v {
         </g>
       </g>
     </svg>
-    <p class="figure-caption">図6-1：H₂ の構造。辺がほとんど全部あるので、辺なしの組だけを破線で示している</p>
+    <p class="figure-caption">図6-2：H₂ の概念図。辺の大部分を省略し、構造の本質を強調</p>
   </div>
   
   <h3>各タイプの役割</h3>
