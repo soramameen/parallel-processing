@@ -1637,8 +1637,8 @@ function drawGraph(svg, H, call) {
   svg.textContent = "";
   const vb = { w: 600, h: 420 };
   svg.setAttribute("viewBox", `0 0 ${vb.w} ${vb.h}`);
-  svg.setAttribute("width", "100%");
-  svg.setAttribute("height", "auto");
+  svg.removeAttribute("width");
+  svg.removeAttribute("height");
   
   // Fixed colors
   const guardC = "#C2521B";    // Orange
