@@ -1194,44 +1194,6 @@ k=5: n=95, 極大クリーク≤216, guided呼び出し=63</pre>
   
 </section>
 
-<!-- サマリー -->
-<section id="summary">
-  <div class="summary-box">
-    <h3>💡 1分で説明する方法</h3>
-    
-    <p><strong>H<sub>k</sub> は、極大クリーク列挙アルゴリズム CLIQUES の最悪ケースを示すグラフです。</strong></p>
-    
-    <ol style="line-height: 2;">
-      <li><strong>グラフ</strong>は点（頂点）と線（辺）でできた構造</li>
-      <li><strong>クリーク</strong>は全員が全員とつながった頂点の集合、<strong>極大クリーク</strong>はもう拡張できないクリーク</li>
-      <li><strong>CLIQUES</strong>は「ピボット」で枝刈りして賢く探索するが、それでも H<sub>k</sub> では苦戦する</li>
-      <li><strong>H<sub>k</sub> の構造</strong>：
-        <ul>
-          <li><span style="color: var(--guard);">guard</span>：常にピボットになり、2分岐を生む</li>
-          <li><span style="color: var(--pair);">pair</span>：2分岐の分岐先（M はクリーク）</li>
-          <li><span style="color: var(--wit);">witness</span>：他の頂点がピボットにならないよう邪魔</li>
-        </ul>
-      </li>
-      <li><strong>結果</strong>：極大クリークは O(<i>n</i>²) 個だが、再帰呼び出しは Ω(2<sup>√<i>n</i></sup>) 回 → CLIQUES は output-polynomial ではない</li>
-    </ol>
-    
-    <p><strong>ポイント：</strong> 答えが少なくても、計算は爆発しうる。アルゴリズムの最悪ケース分析の重要性を示す例です。</p>
-  </div>
-</section>
-
-</main>
-
-<footer>
-  <p>この解説は、Tomita-Tanaka-Takahashi (2006) の論文に基づいています。</p>
-  <p>数値は小規模な <i>k</i> について検証済みです。</p>
-  <p><a href="../../">トップページへ戻る</a></p>
-</footer>
-
-</div>
-
-</body>
-</html>
-
 <!-- インタラクティブステッパー -->
 <section id="stepper">
   <h2>🎮 インタラクティブステッパー</h2>
@@ -1257,16 +1219,16 @@ k=5: n=95, 極大クリーク≤216, guided呼び出し=63</pre>
   <div class="stepper-panels">
     <div class="stepper-panel">
       <h3>(a) グラフの状態</h3>
-      <div class="figure">
-        <svg id="graph-svg" viewBox="0 0 800 500"></svg>
-      </div>
       <div class="legend" id="legend"></div>
+      <div class="figure">
+        <svg id="graph-svg" viewBox="0 0 800 600"></svg>
+      </div>
     </div>
 
     <div class="stepper-panel">
       <h3>(b) 再帰木</h3>
       <div class="figure">
-        <canvas id="tree-canvas" width="400" height="300"></canvas>
+        <canvas id="tree-canvas" width="600" height="400"></canvas>
       </div>
       <div class="stepper-stats" id="stats"></div>
     </div>
@@ -1295,6 +1257,7 @@ k=5: n=95, 極大クリーク≤216, guided呼び出し=63</pre>
       </table>
     </div>
   </div>
+</section>
 
 <style>
 /* Stepper-specific styles */
@@ -1358,7 +1321,12 @@ k=5: n=95, 極大クリーク≤216, guided呼び出し=63</pre>
   color: var(--ink);
 }
 
-#graph-svg { display: block; width: 100%; height: auto; }
+#graph-svg { 
+  display: block; 
+  width: 100%; 
+  height: auto;
+  min-height: 400px;
+}
 
 #tree-canvas {
   display: block;
@@ -1367,6 +1335,7 @@ k=5: n=95, 極大クリーク≤216, guided呼び出し=63</pre>
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 4px;
+  min-height: 300px;
 }
 
 .stepper-caption {
@@ -1374,8 +1343,8 @@ k=5: n=95, 極大クリーク≤216, guided呼び出し=63</pre>
   padding: 12px;
   background: var(--ghost);
   border-radius: 6px;
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.7;
 }
 
 .stepper-details {
@@ -1427,6 +1396,21 @@ k=5: n=95, 極大クリーク≤216, guided呼び出し=63</pre>
 #verify-table th {
   background: var(--ghost);
   font-weight: 600;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  #graph-svg {
+    min-height: 300px;
+  }
 }
 </style>
 
@@ -1487,16 +1471,13 @@ const bsEmpty = a => a.every(x => x === 0);
 // ========== Build H_k graph ==========
 function buildH(k, w) {
   const V = [];
-  // M vertices (pairs)
   for (let i = 0; i < k; i++) {
     V.push({ t: "m", i, label: "a" + (i + 1) });
     V.push({ t: "m", i, label: "b" + (i + 1) });
   }
-  // U vertices (guards)
   for (let i = 0; i < k; i++) {
     V.push({ t: "g", i, label: "g" + (i + 1) });
   }
-  // W vertices (witnesses)
   for (let c = 0; c < 2 * k; c++) {
     for (let j = 0; j < w; j++) {
       V.push({ t: "w", c, j, label: "w" + (c + 1) + "_" + (j + 1) });
@@ -1600,7 +1581,6 @@ function runCliques(H) {
       return;
     }
     
-    // Find pivot
     let best = Infinity;
     let ties = [];
     for (const u of bsList(SUBG)) {
@@ -1613,12 +1593,10 @@ function runCliques(H) {
       }
     }
     
-    // Deterministic tie-break: smallest label
     const u = ties.sort((a, b) => a - b)[0];
     
-    // Branch vertices: CAND \ N(u)
     let ext = bsList(bsAndNot(CAND, H.adj[u]));
-    ext.sort((a, b) => a - b); // deterministic order
+    ext.sort((a, b) => a - b);
     
     rec.pivot = u;
     rec.score = best;
@@ -1648,54 +1626,73 @@ function el(tag, attrs, parent) {
 
 function drawGraph(svg, H, call) {
   svg.textContent = "";
-  const w = 800, h = 500;
+  const w = 800, h = 600;
   svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
   
-  const guardC = css("--guard");
-  const pairC = css("--pair");
-  const witC = css("--wit");
+  // Colors
+  const guardC = "#C2521B";  // Orange
+  const pairC = "#2C61A3";   // Blue
+  const witC = "#2F7563";    // Green
   const ghostC = css("--ghost");
   const lineC = css("--line");
   const inkC = css("--ink");
+  const redC = "#E53E3E";    // Red for non-edges
   
-  // Layout: guards top, pairs middle, witnesses bottom
+  // Layout
   const pos = [];
   const k = H.k;
-  const spacing = Math.min(120, 600 / (2 * k));
+  const spacing = 150;
   
-  // Pairs (M)
+  // Pairs (M) - middle
   for (let i = 0; i < k; i++) {
-    pos.push({ x: 200 + i * spacing * 2, y: 200 });
-    pos.push({ x: 200 + i * spacing * 2 + spacing, y: 200 });
+    pos.push({ x: 250 + i * spacing, y: 300 });
+    pos.push({ x: 250 + i * spacing + 80, y: 300 });
   }
-  // Guards (U)
+  // Guards (U) - top
   for (let i = 0; i < k; i++) {
-    pos.push({ x: 200 + i * spacing * 2 + spacing / 2, y: 100 });
+    pos.push({ x: 250 + i * spacing + 40, y: 150 });
   }
-  // Witnesses (W)
+  // Witnesses (W) - bottom
   for (let c = 0; c < 2 * k; c++) {
     const baseX = pos[c].x;
     for (let j = 0; j < H.w; j++) {
-      pos.push({ x: baseX + (j - (H.w - 1) / 2) * 15, y: 350 });
+      pos.push({ x: baseX + (j - (H.w - 1) / 2) * 16, y: 470 });
     }
   }
   
   const Qset = new Set(call.Q);
   const branch = new Set(call.branch || []);
+  const inSUBG = v => bsHas(call.SUBG, v);
   
-  // Draw non-edges (dashed lines) for illustration
-  const g = el("g", {}, svg);
-  for (let x = 0; x < H.n; x++) {
-    for (let y = x + 1; y < H.n; y++) {
-      if (H.nonAdj(x, y) && H.V[x].t !== "w" && H.V[y].t !== "w") {
+  // Draw pair clique edges (M edges)
+  const edgeG = el("g", {}, svg);
+  for (let x = 0; x < 2 * k; x++) {
+    for (let y = x + 1; y < 2 * k; y++) {
+      if (inSUBG(x) && inSUBG(y)) {
         el("line", {
           x1: pos[x].x, y1: pos[x].y,
           x2: pos[y].x, y2: pos[y].y,
-          stroke: "#aaa",
-          "stroke-width": 0.5,
-          "stroke-dasharray": "3 3",
-          opacity: 0.3
-        }, g);
+          stroke: pairC,
+          "stroke-width": 1,
+          opacity: 0.2
+        }, edgeG);
+      }
+    }
+  }
+  
+  // Draw pivot's non-edges (if pivot exists)
+  if (call.pivot != null) {
+    const pv = call.pivot;
+    for (let v = 0; v < H.n; v++) {
+      if (v !== pv && bsHas(call.CAND, v) && H.nonAdj(pv, v) && inSUBG(v)) {
+        el("line", {
+          x1: pos[pv].x, y1: pos[pv].y,
+          x2: pos[v].x, y2: pos[v].y,
+          stroke: redC,
+          "stroke-width": 2,
+          "stroke-dasharray": "5 3",
+          opacity: 0.7
+        }, edgeG);
       }
     }
   }
@@ -1704,35 +1701,57 @@ function drawGraph(svg, H, call) {
   for (let v = 0; v < H.n; v++) {
     const V = H.V[v];
     const p = pos[v];
-    let r = V.t === "w" ? 4 : 10;
-    let fill = V.t === "g" ? css("--guard-soft") : V.t === "m" ? css("--pair-soft") : css("--wit-soft");
-    let stroke = V.t === "g" ? guardC : V.t === "m" ? pairC : witC;
-    let sw = 2;
     
+    if (!inSUBG(v)) {
+      // Faded out
+      el("circle", {
+        cx: p.x, cy: p.y, r: 3,
+        fill: ghostC,
+        opacity: 0.3
+      }, svg);
+      continue;
+    }
+    
+    let r = V.t === "w" ? 6 : 14;
+    let fill, stroke;
+    
+    if (V.t === "g") {
+      fill = Qset.has(v) ? guardC : "#F3D9C8";
+      stroke = guardC;
+    } else if (V.t === "m") {
+      fill = Qset.has(v) ? pairC : "#D6E2F1";
+      stroke = pairC;
+    } else {
+      fill = Qset.has(v) ? witC : "#D3E8E0";
+      stroke = witC;
+    }
+    
+    let sw = 2;
     if (Qset.has(v)) {
-      fill = inkC;
-      sw = 3;
+      sw = 4;
     } else if (!bsHas(call.CAND, v)) {
       fill = ghostC;
       stroke = lineC;
     }
     
-    if (call.pivot === v) {
+    // Branch candidate ring
+    if (branch.has(v)) {
       el("circle", {
         cx: p.x, cy: p.y, r: r + 6,
         fill: "none",
         stroke: guardC,
-        "stroke-width": 3
+        "stroke-width": 2,
+        "stroke-dasharray": "3 2"
       }, svg);
     }
     
-    if (branch.has(v)) {
+    // Pivot ring
+    if (call.pivot === v) {
       el("circle", {
-        cx: p.x, cy: p.y, r: r + 4,
+        cx: p.x, cy: p.y, r: r + 10,
         fill: "none",
-        stroke: guardC,
-        "stroke-width": 1.5,
-        "stroke-dasharray": "3 2"
+        stroke: inkC,
+        "stroke-width": 3
       }, svg);
     }
     
@@ -1742,15 +1761,17 @@ function drawGraph(svg, H, call) {
       "stroke-width": sw
     }, svg);
     
-    // Labels for guards and pairs
-    if (V.t === "g" || V.t === "m") {
+    // Labels
+    if (V.t !== "w" || H.w <= 3) {
+      const ty = V.t === "g" ? -22 : V.t === "m" ? (V.label[0] === "a" ? -22 : 30) : 18;
       const text = el("text", {
         x: p.x,
-        y: p.y + (V.t === "g" ? 30 : V.label[0] === "a" ? -18 : 30),
+        y: p.y + ty,
         "text-anchor": "middle",
-        "font-size": 12,
+        "font-size": V.t === "w" ? 10 : 13,
         fill: inkC,
-        "font-weight": "600"
+        "font-weight": V.t === "w" ? "400" : "600",
+        "font-family": "var(--font-mono)"
       }, svg);
       text.textContent = V.label;
     }
@@ -1760,15 +1781,14 @@ function drawGraph(svg, H, call) {
 function drawTree(canvas, calls, currentId) {
   const ctx = canvas.getContext("2d");
   const dpr = window.devicePixelRatio || 1;
-  const w = canvas.clientWidth;
-  const h = 300;
+  const w = canvas.clientWidth || 600;
+  const h = 400;
   
   canvas.width = w * dpr;
   canvas.height = h * dpr;
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, w, h);
   
-  // Calculate layout
   const leaves = new Array(calls.length).fill(0);
   const x0 = new Array(calls.length).fill(0);
   
@@ -1787,68 +1807,82 @@ function drawTree(canvas, calls, currentId) {
   
   const maxD = calls.reduce((m, c) => Math.max(m, c.depth), 0);
   const total = leaves[0];
-  const rowH = Math.min(25, (h - 20) / (maxD + 1));
+  const rowH = Math.min(30, (h - 40) / (maxD + 1));
+  
+  const H = window.stepperH;
   
   // Draw boxes
   for (let i = 0; i < calls.length; i++) {
     const c = calls[i];
-    const x = (x0[i] / total) * (w - 20) + 10;
-    const width = (leaves[i] / total) * (w - 20);
-    const y = c.depth * rowH + 10;
+    const x = (x0[i] / total) * (w - 40) + 20;
+    const width = (leaves[i] / total) * (w - 40);
+    const y = c.depth * rowH + 20;
     
     ctx.fillStyle = c.guided ? css("--guard") :
                     c.output ? css("--pair") :
                     i <= currentId ? css("--muted") : css("--ghost");
     ctx.globalAlpha = i <= currentId && !c.guided ? (c.output ? 0.75 : 0.45) : 1;
-    ctx.fillRect(x, y, Math.max(width - 1, 1), rowH - 2);
+    ctx.fillRect(x, y, Math.max(width - 1, 1), rowH - 4);
     ctx.globalAlpha = 1;
     
+    // Label: vertex added
+    if (c.via >= 0 && width > 25 && i <= currentId) {
+      ctx.fillStyle = css("--bg");
+      ctx.font = "600 10px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(H.V[c.via].label, x + width / 2, y + (rowH - 4) / 2);
+    }
+    
+    // Current node
     if (i === currentId) {
       ctx.strokeStyle = css("--ink");
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x, y, Math.max(width - 1, 1), rowH - 2);
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x, y, Math.max(width - 1, 1), rowH - 4);
     }
   }
 }
 
 // ========== Generate caption ==========
-function generateCaption(H, call, prevCall) {
+function generateCaption(H, call) {
   if (!call) return "読み込み中...";
   
   const parts = [];
   
   if (call.id === 0) {
-    parts.push("最初の呼び出しです。Q = ∅、CAND = すべての頂点。");
+    parts.push("📍 <strong>最初の呼び出し</strong>");
+    parts.push("Q（現在のクリーク）= ∅（空）");
+    parts.push("CAND（候補）= すべての頂点");
   } else {
-    const qLabel = call.Q.map(v => H.V[v].label).join(", ");
-    parts.push(`Q = {${qLabel || "∅"}}`);
+    const qLabels = call.Q.map(v => `<strong>${H.V[v].label}</strong>`).join(", ");
+    parts.push(`📍 <strong>現在のクリーク Q</strong> = {${qLabels || "∅"}}`);
   }
   
   if (call.output) {
-    parts.push("SUBG = ∅ なので、Q を極大クリークとして出力します。");
-    return parts.join(" ");
+    parts.push("✅ <strong>SUBG = ∅</strong> なので、Q を<strong>極大クリーク</strong>として出力します。");
+    return parts.join("<br>");
   }
   
   const pivotV = H.V[call.pivot];
-  parts.push(`ピボットは ${pivotV.label}（${pivotV.t === "g" ? "guard" : pivotV.t === "m" ? "ペア" : "witness"}）。`);
+  const pivotType = pivotV.t === "g" ? "guard（ガード）" : pivotV.t === "m" ? "ペア" : "witness";
+  parts.push(`🎯 <strong>ピボット</strong>：${pivotV.label}（${pivotType}）`);
   
-  // Count non-adjacent candidates
-  parts.push(`${pivotV.label} とつながっていない候補は ${call.score} 個。`);
+  parts.push(`${pivotV.label} と<strong>つながっていない候補</strong>は ${call.score} 個`);
   
   if (call.branch && call.branch.length > 0) {
-    const branchLabels = call.branch.map(v => H.V[v].label).join(" と ");
-    parts.push(`分岐頂点は ${branchLabels}。`);
+    const branchLabels = call.branch.map(v => `<strong>${H.V[v].label}</strong>`).join(" と ");
+    parts.push(`🌿 <strong>分岐頂点</strong>：${branchLabels}（この${call.branch.length}本に分岐）`);
     
     if (call.branch.length === 2 && pivotV.t === "g") {
-      parts.push(`<strong>${pivotV.label} は自分のペアとつながっていないため、この2本に分岐します。</strong>`);
+      parts.push(`<span style="color:${css("--guard")}">⚠️ <strong>${pivotV.label} は自分のペアとつながっていない</strong>ため、この2本に分岐します（赤い破線で表示）</span>`);
     }
   }
   
   if (call.guided) {
-    parts.push('<span style="color:var(--guard)"><strong>これは guided call です。</strong></span>');
+    parts.push('<span style="color:var(--guard)">⭐ これは <strong>guided call</strong> です（3つの条件を満たす）</span>');
   }
   
-  return parts.join(" ");
+  return parts.join("<br>");
 }
 
 // ========== Main app state ==========
@@ -1858,15 +1892,13 @@ let currentStep = 0;
 let autoTimer = null;
 
 function init() {
-  // Build H_2 graph
   H = buildH(2, 5);
+  window.stepperH = H;
   console.log("Built H_2 graph:", H.n, "vertices");
   
-  // Run CLIQUES
   calls = runCliques(H);
   console.log("CLIQUES completed:", calls.length, "calls");
   
-  // Verify
   const guidedCount = calls.filter(c => c.guided).length;
   const maximalCount = calls.filter(c => c.output).length;
   
@@ -1897,18 +1929,9 @@ function init() {
   const verifyStats = document.getElementById("verify-stats");
   if (verifyStats) {
     verifyStats.innerHTML = `
-      <div>
-        <div class="num">${guidedCount}</div>
-        <div class="lab">guided calls</div>
-      </div>
-      <div>
-        <div class="num">${maximalCount}</div>
-        <div class="lab">極大クリーク</div>
-      </div>
-      <div>
-        <div class="num">${calls.length}</div>
-        <div class="lab">総呼び出し</div>
-      </div>
+      <div><div class="num">${guidedCount}</div><div class="lab">guided calls</div></div>
+      <div><div class="num">${maximalCount}</div><div class="lab">極大クリーク</div></div>
+      <div><div class="num">${calls.length}</div><div class="lab">総呼び出し</div></div>
     `;
   }
   
@@ -1919,34 +1942,25 @@ function render() {
   if (calls.length === 0) return;
   
   const call = calls[currentStep];
-  const prevCall = currentStep > 0 ? calls[currentStep - 1] : null;
   
-  // Draw graph
   const graphSvg = document.getElementById("graph-svg");
   if (graphSvg) drawGraph(graphSvg, H, call);
   
-  // Draw tree
   const treeCanvas = document.getElementById("tree-canvas");
   if (treeCanvas) drawTree(treeCanvas, calls, currentStep);
   
-  // Caption
   const caption = document.getElementById("caption");
-  if (caption) caption.innerHTML = generateCaption(H, call, prevCall);
+  if (caption) caption.innerHTML = generateCaption(H, call);
   
-  // Details
   const details = document.getElementById("details");
   if (details) {
     const detailsArr = [];
     detailsArr.push(`<p><strong>呼び出し ${currentStep + 1} / ${calls.length}</strong></p>`);
     detailsArr.push(`<p>深さ: ${call.depth}</p>`);
-    detailsArr.push(`<p>|CAND| = ${bsCount(call.CAND)}</p>`);
-    if (!call.output) {
-      detailsArr.push(`<p>|SUBG| = ${bsCount(call.SUBG)}</p>`);
-    }
+    detailsArr.push(`<p>|CAND| = ${bsCount(call.CAND)}, |SUBG| = ${bsCount(call.SUBG)}</p>`);
     details.innerHTML = detailsArr.join("");
   }
   
-  // Stats
   const doneCalls = calls.slice(0, currentStep + 1);
   const doneGuided = doneCalls.filter(c => c.guided).length;
   const doneOutput = doneCalls.filter(c => c.output).length;
@@ -1954,30 +1968,21 @@ function render() {
   const stats = document.getElementById("stats");
   if (stats) {
     stats.innerHTML = `
-      <div>
-        <div class="num">${currentStep + 1}</div>
-        <div class="lab">現在のステップ</div>
-      </div>
-      <div>
-        <div class="num">${doneGuided}</div>
-        <div class="lab">guided calls</div>
-      </div>
-      <div>
-        <div class="num">${doneOutput}</div>
-        <div class="lab">出力済み</div>
-      </div>
+      <div><div class="num">${currentStep + 1}</div><div class="lab">現在のステップ</div></div>
+      <div><div class="num">${doneGuided}</div><div class="lab">guided calls</div></div>
+      <div><div class="num">${doneOutput}</div><div class="lab">出力済み</div></div>
     `;
   }
   
-  // Legend
   const legend = document.getElementById("legend");
   if (legend) {
     legend.innerHTML = `
-      <span class="legend-item"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="${css("--guard-soft")}" stroke="${css("--guard")}" stroke-width="2"/></svg>guard</span>
-      <span class="legend-item"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="${css("--pair-soft")}" stroke="${css("--pair")}" stroke-width="2"/></svg>ペア</span>
-      <span class="legend-item"><svg width="20" height="20"><circle cx="10" cy="10" r="6" fill="${css("--wit-soft")}" stroke="${css("--wit")}" stroke-width="2"/></svg>witness</span>
-      <span class="legend-item"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="${css("--ink")}" stroke="${css("--pair")}" stroke-width="2"/></svg>Q に含む</span>
-      <span class="legend-item"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="${css("--ghost")}" stroke="${css("--line")}" stroke-width="2"/></svg>候補外</span>
+      <div class="legend-item"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="#F3D9C8" stroke="#C2521B" stroke-width="2"/></svg>guard</div>
+      <div class="legend-item"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="#D6E2F1" stroke="#2C61A3" stroke-width="2"/></svg>ペア</div>
+      <div class="legend-item"><svg width="20" height="20"><circle cx="10" cy="10" r="6" fill="#D3E8E0" stroke="#2F7563" stroke-width="2"/></svg>witness</div>
+      <div class="legend-item"><svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="#C2521B" stroke="#C2521B" stroke-width="3"/></svg>Q に含む</div>
+      <div class="legend-item"><svg width="20" height="20"><line x1="2" y1="10" x2="18" y2="10" stroke="#E53E3E" stroke-width="2" stroke-dasharray="3 2"/></svg>辺なし</div>
+      <div class="legend-item"><svg width="20" height="20"><circle cx="10" cy="10" r="6" fill="none" stroke="black" stroke-width="2"/><circle cx="10" cy="10" r="9" fill="none" stroke="black" stroke-width="2"/></svg>ピボット</div>
     `;
   }
 }
@@ -2014,11 +2019,10 @@ function toggleAuto() {
       } else {
         goToStep(currentStep + 1);
       }
-    }, 800);
+    }, 1000);
   }
 }
 
-// Event listeners
 const btnFirst = document.getElementById("btn-first");
 if (btnFirst) btnFirst.addEventListener("click", () => goToStep(0));
 
@@ -2059,15 +2063,15 @@ if (treeCanvas) {
     
     const total = leaves[0];
     const maxD = calls.reduce((m, c) => Math.max(m, c.depth), 0);
-    const rowH = Math.min(25, (rect.height - 20) / (maxD + 1));
+    const rowH = Math.min(30, (rect.height - 40) / (maxD + 1));
     
-    const depth = Math.floor((y - 10) / rowH);
+    const depth = Math.floor((y - 20) / rowH);
     
     for (let i = 0; i < calls.length; i++) {
       const c = calls[i];
       if (c.depth === depth) {
-        const xStart = (x0[i] / total) * (rect.width - 20) + 10;
-        const width = (leaves[i] / total) * (rect.width - 20);
+        const xStart = (x0[i] / total) * (rect.width - 40) + 20;
+        const width = (leaves[i] / total) * (rect.width - 40);
         if (x >= xStart && x <= xStart + width) {
           goToStep(i);
           break;
@@ -2077,7 +2081,6 @@ if (treeCanvas) {
   });
 }
 
-// Initialize on load
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
@@ -2087,9 +2090,44 @@ if (document.readyState === 'loading') {
 })();
 </script>
 
-</section>
 
 <!-- サマリー -->
+<section id="summary">
+  <div class="summary-box">
+    <h3>💡 1分で説明する方法</h3>
+    
+    <p><strong>H<sub>k</sub> は、極大クリーク列挙アルゴリズム CLIQUES の最悪ケースを示すグラフです。</strong></p>
+    
+    <ol style="line-height: 2;">
+      <li><strong>グラフ</strong>は点（頂点）と線（辺）でできた構造</li>
+      <li><strong>クリーク</strong>は全員が全員とつながった頂点の集合、<strong>極大クリーク</strong>はもう拡張できないクリーク</li>
+      <li><strong>CLIQUES</strong>は「ピボット」で枝刈りして賢く探索するが、それでも H<sub>k</sub> では苦戦する</li>
+      <li><strong>H<sub>k</sub> の構造</strong>：
+        <ul>
+          <li><span style="color: var(--guard);">guard</span>：常にピボットになり、2分岐を生む</li>
+          <li><span style="color: var(--pair);">pair</span>：2分岐の分岐先（M はクリーク）</li>
+          <li><span style="color: var(--wit);">witness</span>：他の頂点がピボットにならないよう邪魔</li>
+        </ul>
+      </li>
+      <li><strong>結果</strong>：極大クリークは O(<i>n</i>²) 個だが、再帰呼び出しは Ω(2<sup>√<i>n</i></sup>) 回 → CLIQUES は output-polynomial ではない</li>
+    </ol>
+    
+    <p><strong>ポイント：</strong> 答えが少なくても、計算は爆発しうる。アルゴリズムの最悪ケース分析の重要性を示す例です。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>この解説は、Tomita-Tanaka-Takahashi (2006) の論文に基づいています。</p>
+  <p>数値は小規模な <i>k</i> について検証済みです。</p>
+  <p><a href="../../">トップページへ戻る</a></p>
+</footer>
+
+</div>
+
+</body>
+</html>
 <section id="summary">
   <div class="summary-box">
     <h3>💡 1分で説明する方法</h3>
