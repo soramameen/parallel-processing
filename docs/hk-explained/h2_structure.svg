@@ -1,0 +1,58 @@
+<svg viewBox="0 0 800 600" width="800" height="600">
+  <text x="400" y="30" font-size="18" font-weight="700" text-anchor="middle" fill="var(--ink)">H₂ の構造（n=26, m=110, k=2）</text>
+  <text x="400" y="50" font-size="14" text-anchor="middle" fill="var(--muted)">非エッジのみ破線で表示（完全グラフから 215 本削除）</text>
+  <line x1="250" y1="200" x2="350" y2="200" stroke="var(--pair)" stroke-width="2" opacity="0.6" />
+  <line x1="250" y1="200" x2="450" y2="200" stroke="var(--pair)" stroke-width="2" opacity="0.6" />
+  <line x1="250" y1="200" x2="550" y2="200" stroke="var(--pair)" stroke-width="2" opacity="0.6" />
+  <line x1="350" y1="200" x2="450" y2="200" stroke="var(--pair)" stroke-width="2" opacity="0.6" />
+  <line x1="350" y1="200" x2="550" y2="200" stroke="var(--pair)" stroke-width="2" opacity="0.6" />
+  <line x1="450" y1="200" x2="550" y2="200" stroke="var(--pair)" stroke-width="2" opacity="0.6" />
+  <circle cx="300" cy="80" r="16" fill="var(--guard-soft)" stroke="var(--guard)" stroke-width="2" />
+  <text x="300" y="84" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">g1</text>
+  <circle cx="500" cy="80" r="16" fill="var(--guard-soft)" stroke="var(--guard)" stroke-width="2" />
+  <text x="500" y="84" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">g2</text>
+  <circle cx="250" cy="200" r="16" fill="var(--pair-soft)" stroke="var(--pair)" stroke-width="2" />
+  <text x="250" y="204" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">a1</text>
+  <circle cx="350" cy="200" r="16" fill="var(--pair-soft)" stroke="var(--pair)" stroke-width="2" />
+  <text x="350" y="204" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">b1</text>
+  <circle cx="450" cy="200" r="16" fill="var(--pair-soft)" stroke="var(--pair)" stroke-width="2" />
+  <text x="450" y="204" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">a2</text>
+  <circle cx="550" cy="200" r="16" fill="var(--pair-soft)" stroke="var(--pair)" stroke-width="2" />
+  <text x="550" y="204" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">b2</text>
+  <circle cx="150" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <text x="150" y="354" font-size="10" font-weight="700" text-anchor="middle" fill="var(--ink)">w1</text>
+  <circle cx="190" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="230" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="270" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="310" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="280" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <text x="280" y="404" font-size="10" font-weight="700" text-anchor="middle" fill="var(--ink)">w6</text>
+  <circle cx="320" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="360" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="400" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="440" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="420" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <text x="420" y="404" font-size="10" font-weight="700" text-anchor="middle" fill="var(--ink)">w11</text>
+  <circle cx="460" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="500" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="540" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="580" cy="400" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="550" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <text x="550" y="354" font-size="10" font-weight="700" text-anchor="middle" fill="var(--ink)">w16</text>
+  <circle cx="590" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="630" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="670" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <circle cx="710" cy="350" r="8" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2" />
+  <text x="150" y="320" font-size="13" font-weight="700" text-anchor="start" fill="var(--guard)">U (guards)</text>
+  <text x="400" y="170" font-size="13" font-weight="700" text-anchor="middle" fill="var(--pair)">M (pair clique)</text>
+  <text x="170" y="480" font-size="12" text-anchor="start" fill="var(--wit)">a₁の証人(5個)</text>
+  <text x="300" y="530" font-size="12" text-anchor="start" fill="var(--wit)">b₁の証人(5個)</text>
+  <text x="440" y="530" font-size="12" text-anchor="start" fill="var(--wit)">a₂の証人(5個)</text>
+  <text x="570" y="480" font-size="12" text-anchor="start" fill="var(--wit)">b₂の証人(5個)</text>
+  <g transform="translate(50, 540)">
+    <line x1="0" y1="0" x2="30" y2="0" stroke="var(--pair)" stroke-width="2" />
+    <text x="35" y="5" font-size="12" fill="var(--muted)">辺あり（M内）</text>
+    <line x1="150" y1="0" x2="180" y2="0" stroke="var(--guard)" stroke-width="2" stroke-dasharray="5 3" />
+    <text x="185" y="5" font-size="12" fill="var(--muted)">辺なし（主要なもののみ表示）</text>
+  </g>
+</svg>

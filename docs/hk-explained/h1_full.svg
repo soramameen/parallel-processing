@@ -1,0 +1,43 @@
+<svg viewBox="0 0 600 500" width="600" height="500">
+  <line x1="300" y1="80" x2="120" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="300" y1="80" x2="170" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="300" y1="80" x2="220" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="300" y1="80" x2="270" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="300" y1="80" x2="330" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="300" y1="80" x2="380" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="300" y1="80" x2="430" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="300" y1="80" x2="480" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="220" y1="200" x2="380" y2="200" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="220" y1="200" x2="330" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="220" y1="200" x2="380" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="220" y1="200" x2="430" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="220" y1="200" x2="480" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="380" y1="200" x2="120" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="380" y1="200" x2="170" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="380" y1="200" x2="220" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <line x1="380" y1="200" x2="270" y2="350" stroke="var(--muted)" stroke-width="1.5" opacity="0.4" />
+  <circle cx="300" cy="80" r="18" fill="var(--guard-soft)" stroke="var(--guard)" stroke-width="2.5" />
+  <text x="300" y="85" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">g1</text>
+  <circle cx="220" cy="200" r="18" fill="var(--pair-soft)" stroke="var(--pair)" stroke-width="2.5" />
+  <text x="220" y="205" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">a1</text>
+  <circle cx="380" cy="200" r="18" fill="var(--pair-soft)" stroke="var(--pair)" stroke-width="2.5" />
+  <text x="380" y="205" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">b1</text>
+  <circle cx="120" cy="350" r="12" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2.5" />
+  <text x="120" y="355" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">w1</text>
+  <circle cx="170" cy="350" r="12" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2.5" />
+  <text x="170" y="355" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">w2</text>
+  <circle cx="220" cy="350" r="12" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2.5" />
+  <text x="220" y="355" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">w3</text>
+  <circle cx="270" cy="350" r="12" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2.5" />
+  <text x="270" y="355" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">w4</text>
+  <circle cx="330" cy="350" r="12" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2.5" />
+  <text x="330" y="355" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">w5</text>
+  <circle cx="380" cy="350" r="12" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2.5" />
+  <text x="380" y="355" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">w6</text>
+  <circle cx="430" cy="350" r="12" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2.5" />
+  <text x="430" y="355" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">w7</text>
+  <circle cx="480" cy="350" r="12" fill="var(--wit-soft)" stroke="var(--wit)" stroke-width="2.5" />
+  <text x="480" y="355" font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">w8</text>
+  <text x="300" y="30" font-size="16" font-weight="700" text-anchor="middle" fill="var(--ink)">H₁ 完全図（n=11, m=17, k=1）</text>
+  <text x="300" y="480" font-size="14" text-anchor="middle" fill="var(--muted)">すべての辺を表示（17本）</text>
+</svg>
