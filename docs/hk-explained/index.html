@@ -1231,3 +1231,67 @@ k=5: n=95, 極大クリーク≤216, guided呼び出し=63</pre>
 
 </body>
 </html>
+
+<!-- インタラクティブステッパー -->
+<section id="stepper">
+  <h2>🎮 インタラクティブステッパー</h2>
+  
+  <div class="callout">
+    <p><strong>実際に動かしてみよう：</strong> 以下のステッパーで、H<sub>2</sub> グラフ（<i>k</i>=2, <i>n</i>=26頂点）上で CLIQUES を実行し、すべてのステップを追うことができます。</p>
+  </div>
+  
+  <div class="stepper-intro">
+    <p class="callout important">
+      <strong>重要なポイント：</strong> guard（ガード）は自分のペアとつながっていません。そのため、ピボットになった guard は必ずペアの2頂点を分岐候補として選びます。この2つの子呼び出しはどちらも同じ条件（guided call）を満たし、再帰的に2分岐を繰り返します。
+    </p>
+  </div>
+
+  <div class="stepper-controls">
+    <button id="btn-first" class="btn">最初</button>
+    <button id="btn-back" class="btn">◀ 戻る</button>
+    <button id="btn-next" class="btn">次へ ▶</button>
+    <button id="btn-auto" class="btn">自動再生</button>
+    <button id="btn-guided" class="btn btn-primary">次の guided call へ</button>
+  </div>
+
+  <div class="stepper-panels">
+    <div class="stepper-panel">
+      <h3>(a) グラフの状態</h3>
+      <div class="figure">
+        <svg id="graph-svg" viewBox="0 0 800 500"></svg>
+      </div>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="stepper-panel">
+      <h3>(b) 再帰木</h3>
+      <div class="figure">
+        <canvas id="tree-canvas" width="400" height="300"></canvas>
+      </div>
+      <div class="stepper-stats" id="stats"></div>
+    </div>
+
+    <div class="stepper-panel">
+      <h3>(c) 説明</h3>
+      <div class="stepper-caption" id="caption"></div>
+      <div class="stepper-details" id="details"></div>
+    </div>
+  </div>
+
+  <div class="verification">
+    <h3>検証結果</h3>
+    <div class="stepper-stats" id="verify-stats"></div>
+    <div class="figure">
+      <table id="verify-table">
+        <thead>
+          <tr>
+            <th>項目</th>
+            <th>期待値</th>
+            <th>実測値</th>
+            <th>結果</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
