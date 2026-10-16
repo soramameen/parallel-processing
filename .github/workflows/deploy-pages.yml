@@ -12,6 +12,7 @@ on:
       - 'docs/slides/**'
       - 'docs/artifacts/**'
       - 'docs/figures/**'
+      - 'docs/hk-explained/**'
       - 'reference/**'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
@@ -38,7 +39,7 @@ jobs:
           # Research dashboard
           cp research.html _site/research.html
           # Create directory structure
-          mkdir -p _site/lessons _site/docs/slides _site/docs/artifacts _site/docs/figures _site/reference
+          mkdir -p _site/lessons _site/docs/slides _site/docs/artifacts _site/docs/figures _site/docs/hk-explained _site/reference
           # Copy HTML learning materials
           cp -r lessons/*.html _site/lessons/ 2>/dev/null || true
           cp -r docs/slides/*.html _site/docs/slides/ 2>/dev/null || true
@@ -48,6 +49,8 @@ jobs:
           cp docs/roadmap.html _site/docs/roadmap.html
           # Copy figures for research dashboard
           cp -r docs/figures/*.svg _site/docs/figures/ 2>/dev/null || true
+          # Copy H_k explanation
+          cp -r docs/hk-explained/. _site/docs/hk-explained/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
