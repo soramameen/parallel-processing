@@ -5,7 +5,9 @@ description = "A cross-platform Python project template using Nix and uv"
 requires-python = ">=3.12"
 readme = "README.md"
 license = { text = "MIT" }
-dependencies = []
+dependencies = [
+    "matplotlib>=3.11.2",
+]
 
 [dependency-groups]
 dev = [

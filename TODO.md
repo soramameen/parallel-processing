@@ -3,6 +3,22 @@
 目標: 2026-07-28 頃までに提出できる形に固める。
 ドラフトは `thesis/`（`latexmk -lualatex main.tex` でビルド）。本文中の残件は `[TODO: ...]` でマーク済み。
 
+## 完了済み（2026-10-16）: Tsukiyama et al. 比較実験
+
+- [x] H_k インスタンス (k=1,3,5,7,8,9,10) を `data/instances/` に配置
+- [x] DIMACS .clq フォーマットのローダーを `graph_io.py` に追加
+- [x] Tsukiyama et al. (1977) のアルゴリズムを実装（`tsukiyama.py`）
+- [x] 小規模ランダムグラフとH1/H3でテスト、既存アルゴリズムと出力を比較
+- [x] 全インスタンスでベンチマーク実行（実行時間・クリーク数・work counter）
+- [x] タイムアウト処理（300秒/実行）
+- [x] 結果を `artifacts/tsukiyama_benchmark.csv` に保存
+- [x] 結果の可視化（runtime comparison、speedup）
+- [x] `REPRODUCE.md` に再現手順を追記
+- [x] `NOTES.md` に未確認事項を記録
+
+結果: Tsukiyamaは予想通り非常に遅く、H5で約400倍、H7で約6000倍、H8以降はタイムアウト。
+全テスト通過、クリーク数は既存アルゴリズムと一致。
+
 ## 前半（1〜3日目）: 中身の確定
 
 - [ ] 先行研究の本文読み込みと3章の加筆（最大の穴）

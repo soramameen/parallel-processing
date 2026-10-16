@@ -1,0 +1,23 @@
+c Graph H_1 of Theorem 1 in 'The CLIQUES Algorithm Is Not Output-Polynomial' (Sec. 3)
+c target n = 10; nearest H_k has n = 2k^2+9k = 11 vertices (k = 1)
+c maximal cliques: 17 (Lemma bound (k+1)(2k(k+3)+1) = 18 <= n^2 = 121)
+c every run of CLIQUES makes at least 2^(k+1)-1 = 3 recursive calls (one run with min-label tie-breaking and increasing order: 21)
+c vertices: guards g_i = 1..1; core a_i = k+2i-1, b_i = k+2i (2..3); witnesses 4..11, 4 per core vertex in the order a_1, b_1, a_2, ...
+p edge 11 17
+e 1 4
+e 1 5
+e 1 6
+e 1 7
+e 1 8
+e 1 9
+e 1 10
+e 1 11
+e 2 3
+e 2 8
+e 2 9
+e 2 10
+e 2 11
+e 3 4
+e 3 5
+e 3 6
+e 3 7

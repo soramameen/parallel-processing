@@ -111,6 +111,58 @@ done
 - `busy_max/busy_min/busy_sum` は worker 別稼働秒。idle% = 1 − busy_sum / (workers × compute_s)。
 - 古い行（strategy 列追加前）は block でバックフィルされている。
 
+## Tsukiyama et al. アルゴリズムの比較実験（2026-10-16）
+
+Tsukiyama et al. (1977) の極大独立集合列挙アルゴリズムを補グラフに適用して極大クリーク列挙を行い、
+既存の3つのアルゴリズム（Bron-Kerbosch with pivot、Tomita CLIQUES、Eppstein et al.）と比較。
+
+実験設定:
+
+- インスタンス: H_k グラフ (k=1,3,5,7,8,9,10)、`data/instances/*.clq`
+- 各条件3回実行、中央値を採用
+- タイムアウト: 300秒/実行
+- 記録: 実行時間、クリーク数、最大クリークサイズ、work counter（再帰呼び出し回数、Tsukiyamaのみ）
+
+### 実行方法
+
+```sh
+# DIMACS インスタンスが data/instances/ にあることを確認
+ls data/instances/H*.clq
+
+# 全インスタンスでベンチマーク（約30分、H8以降でTsukiyamaがタイムアウト）
+uv run python -m parallel_processing.benchmark_tsukiyama
+
+# 結果の可視化
+uv run python -m parallel_processing.plot_tsukiyama_results
+```
+
+生データ: `artifacts/tsukiyama_benchmark.csv`  
+図: `artifacts/tsukiyama_runtime_comparison.png`, `artifacts/tsukiyama_speedup.png`  
+環境情報: `artifacts/tsukiyama_machine_info.json`
+
+### 手動での個別測定
+
+```sh
+# 単一インスタンスで各アルゴリズムをテスト
+uv run python -c "
+from pathlib import Path
+from parallel_processing.graph_io import load_dimacs
+from parallel_processing.tsukiyama import tsukiyama_cliques
+from parallel_processing.cliques import cliques
+from parallel_processing.eppstein import eppstein_cliques
+import time
+
+graph = load_dimacs('data/instances/H5_n95.clq')
+for name, fn in [('Tsukiyama', tsukiyama_cliques),
+                  ('Tomita', cliques),
+                  ('Eppstein', eppstein_cliques)]:
+    start = time.perf_counter()
+    result = fn(graph)
+    elapsed = time.perf_counter() - start
+    print(f'{name}: {len(result)} cliques in {elapsed:.3f}s')
+"
+```
+
 ## 非対称コアのエミュレーション実験（Linux、2026-09-22〜23）
 
 結果と考察は `docs/hetero-experiments.md`、計画は `docs/plans/hetero-cores.md`、生データは `artifacts/linux/`。
