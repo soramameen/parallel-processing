@@ -1235,17 +1235,17 @@ k=5: n=95, 極大クリーク≤216, guided呼び出し=63</pre>
     </div>
 
     <div class="stepper-panel">
-      <h3>(b) 再帰木</h3>
+      <h3>(b) 説明</h3>
+      <div class="stepper-caption" id="caption"></div>
+      <div class="stepper-details" id="details"></div>
+    </div>
+
+    <div class="stepper-panel">
+      <h3>(c) 再帰木</h3>
       <div class="figure">
         <canvas id="tree-canvas" width="600" height="400"></canvas>
       </div>
       <div class="stepper-stats" id="stats"></div>
-    </div>
-
-    <div class="stepper-panel">
-      <h3>(c) 説明</h3>
-      <div class="stepper-caption" id="caption"></div>
-      <div class="stepper-details" id="details"></div>
     </div>
   </div>
 
@@ -1305,14 +1305,11 @@ k=5: n=95, 極大クリーク≤216, guided呼び出し=63</pre>
 .btn-primary:hover { opacity: 0.9; }
 
 .stepper-panels {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 20px;
   margin: 20px 0;
-}
-
-@media (max-width: 1200px) {
-  .stepper-panels { grid-template-columns: 1fr; }
+  max-width: 900px;
 }
 
 .stepper-panel {
@@ -1753,7 +1750,7 @@ function drawGraph(svg, H, call) {
     }
     
     // Opacity: full color always, reduce for outside SUBG
-    const opacity = inSUBG(v) ? 1.0 : 0.35;
+    const opacity = inSUBG(v) ? 1.0 : 0.55;
     
     // Branch candidate: yellow halo
     if (branch.has(v)) {
@@ -1812,23 +1809,23 @@ function drawGraph(svg, H, call) {
         "font-size": 13,
         "font-weight": "600",
         "font-family": "monospace",
-        fill: "#FFF",
-        opacity
+        fill: "#FFF"
       }, vertG);
       text.textContent = V.label;
     } else if (V.t === "w") {
-      // Witnesses: simple 'w' label for middle witness in each group
+      // Witnesses: show owner label for middle witness in each group
       if (V.j === Math.floor(H.w / 2)) {
+        const ownerLabel = H.V[V.c].label;
         const text = el("text", {
           x: p.x,
           y: p.y + r + 18,
           "text-anchor": "middle",
           "font-size": 10,
+          "font-weight": "500",
           "font-family": "monospace",
-          fill: witC,
-          opacity: opacity * 0.8
+          fill: "#333"
         }, vertG);
-        text.textContent = "w";
+        text.textContent = `w(${ownerLabel})`;
       }
     }
   }
@@ -2006,7 +2003,7 @@ function drawLegend() {
     { label: "ピボット", text: "P", bg: "#666", color: "#FFF" },
     { label: "分岐候補", style: "border: 3px solid #EAB308; border-radius: 50%; width: 14px; height: 14px;" },
     { label: "非辺", style: "width: 30px; height: 0; border-top: 2px dashed #EF4444;" },
-    { label: "SUBG外", color: "#999", opacity: 0.35 }
+    { label: "SUBG外", color: "#999", opacity: 0.55 }
   ];
   
   items.forEach(item => {
