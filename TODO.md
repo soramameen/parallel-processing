@@ -3,6 +3,22 @@
 目標: 2026-07-28 頃までに提出できる形に固める。
 ドラフトは `thesis/`（`latexmk -lualatex main.tex` でビルド）。本文中の残件は `[TODO: ...]` でマーク済み。
 
+## 完了済み（2026-10-16）: Tsukiyama et al. 比較実験
+
+- [x] H_k インスタンス (k=1,3,5,7,8,9,10) を `data/instances/` に配置
+- [x] DIMACS .clq フォーマットのローダーを `graph_io.py` に追加
+- [x] Tsukiyama et al. (1977) のアルゴリズムを実装（`tsukiyama.py`）
+- [x] 小規模ランダムグラフと H1..H7 でテスト（出力集合が既存手法と一致、節点数 ≤ (n+1)μ、最大クリークは 2k）
+- [x] 素朴なバックトラックをやめ、Chiba–Nishizeki (1985) Section 6 の `UPDATE` に合わせて再実装
+- [x] 全インスタンスでベンチマークをやり直した（中央値 3 回、タイムアウト 300 秒、最大クリークサイズを 4 手法で同じ定義に修正）
+- [x] タイムアウト処理（300秒/実行）。今回の再測定では打ち切りなし
+- [x] 結果を `artifacts/tsukiyama_benchmark.csv` に保存
+- [x] 結果の可視化（runtime comparison、speedup）
+- [x] `REPRODUCE.md` に再現手順を追記
+- [x] `NOTES.md` に出典と未確認事項を記録
+
+再測定の要約（正本は CSV）: 節点 / (n μ) は 0.42〜0.46。H10 で Tsukiyama 2.80 秒、Eppstein 0.091 秒（約 31 倍）。最大クリークは 2k。
+
 ## 前半（1〜3日目）: 中身の確定
 
 - [ ] 先行研究の本文読み込みと3章の加筆（最大の穴）

@@ -63,3 +63,42 @@ def load_edge_list(path: str | Path) -> Graph:
 def edge_count(graph: Graph) -> int:
     """Return the number of undirected edges in ``graph``."""
     return sum(len(neighbours) for neighbours in graph.values()) // 2
+
+
+def load_dimacs(path: str | Path) -> Graph:
+    """Load a DIMACS .clq file into an undirected :data:`Graph`.
+
+    DIMACS format:
+    - Lines beginning with ``c`` are comments (skipped).
+    - Problem line: ``p edge n m`` declares n vertices and m edges.
+    - Edge lines: ``e u v`` (vertices are 1-based integers).
+    - Self-loops (``u == v``) are dropped; duplicate edges are absorbed.
+    - Every vertex ID from 1 to n is registered as a key, so isolated vertices
+      still appear as their own maximal clique.
+    """
+    graph: Graph = {}
+    n_vertices = 0
+    with _open_text(Path(path)) as handle:
+        for line in handle:
+            line = line.strip()
+            if not line or line.startswith("c"):
+                continue
+            parts = line.split()
+            if parts[0] == "p":
+                # p edge n m
+                if len(parts) >= 3 and parts[1] == "edge":
+                    n_vertices = int(parts[2])
+                    # Pre-register all vertices
+                    for v in range(1, n_vertices + 1):
+                        graph[v] = set()
+            elif parts[0] == "e":
+                # e u v
+                if len(parts) >= 3:
+                    u, v = int(parts[1]), int(parts[2])
+                    graph.setdefault(u, set())
+                    graph.setdefault(v, set())
+                    if u == v:
+                        continue
+                    graph[u].add(v)
+                    graph[v].add(u)
+    return graph
