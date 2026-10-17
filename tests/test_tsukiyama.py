@@ -12,7 +12,7 @@ from parallel_processing.bron_kerbosch import bron_kerbosch_pivot
 from parallel_processing.cliques import cliques
 from parallel_processing.eppstein import eppstein_cliques
 from parallel_processing.graph_io import load_dimacs
-from parallel_processing.tsukiyama import tsukiyama_cliques, count_tsukiyama_cliques
+from parallel_processing.tsukiyama import count_tsukiyama_cliques, tsukiyama_cliques
 
 SAMPLE_GRAPH: dict[int, set[int]] = {
     1: {2, 5},
@@ -97,28 +97,42 @@ def test_count_tsukiyama_matches_tsukiyama_on_random_graphs() -> None:
         assert largest == max((len(c) for c in enumerated), default=0)
 
 
-def test_h1_instance_clique_count() -> None:
-    """H1_n11.clq has exactly 17 maximal cliques (from README)."""
-    instance_path = Path("data/instances/H1_n11.clq")
-    if not instance_path.exists():
-        # Skip if instances not available (e.g., in CI without data/)
-        return
-    graph = load_dimacs(instance_path)
-    found = tsukiyama_cliques(graph)
-    assert len(found) == 17
-    # Cross-check with other algorithms
-    assert found == cliques(graph)
-    assert found == eppstein_cliques(graph)
+def test_generation_tree_is_at_most_linear_in_n_times_cliques() -> None:
+    """Every UPDATE reaches an output, so nodes <= (n + 1) * #cliques."""
+    rng = random.Random(7)
+    for _ in range(20):
+        n = rng.randint(1, 8)
+        graph: dict[int, set[int]] = {i: set() for i in range(n)}
+        for i in range(n):
+            for j in range(i + 1, n):
+                if rng.random() < 0.5:
+                    graph[i].add(j)
+                    graph[j].add(i)
+        count, _, nodes = count_tsukiyama_cliques(graph)
+        assert nodes <= (n + 1) * count
 
 
-def test_h3_instance_clique_count() -> None:
-    """H3_n45.clq has exactly 145 maximal cliques (from README)."""
-    instance_path = Path("data/instances/H3_n45.clq")
-    if not instance_path.exists():
-        return
-    graph = load_dimacs(instance_path)
-    found = tsukiyama_cliques(graph)
-    assert len(found) == 145
-    # Cross-check with other algorithms
-    assert found == cliques(graph)
-    assert found == eppstein_cliques(graph)
+# README of data/instances: maximal-clique counts, and the core M has size 2k.
+_H_INSTANCES = [
+    ("H1_n11.clq", 1, 17),
+    ("H3_n45.clq", 3, 145),
+    ("H5_n95.clq", 5, 481),
+    ("H7_n161.clq", 7, 1121),
+]
+
+
+def test_h_instances_match_existing_algorithms() -> None:
+    """H1..H7: same clique set as Tomita, and the core has size 2k."""
+    for name, k, expected in _H_INSTANCES:
+        path = Path("data/instances") / name
+        if not path.exists():
+            continue
+        graph = load_dimacs(path)
+        found = tsukiyama_cliques(graph)
+        assert len(found) == expected
+        assert found == cliques(graph)
+        assert found == eppstein_cliques(graph)
+        count, largest, nodes = count_tsukiyama_cliques(graph)
+        assert count == expected
+        assert largest == 2 * k
+        assert nodes <= (len(graph) + 1) * count

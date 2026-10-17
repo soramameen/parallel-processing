@@ -113,15 +113,21 @@ done
 
 ## Tsukiyama et al. アルゴリズムの比較実験（2026-10-16）
 
-Tsukiyama et al. (1977) の極大独立集合列挙アルゴリズムを補グラフに適用して極大クリーク列挙を行い、
-既存の3つのアルゴリズム（Bron-Kerbosch with pivot、Tomita CLIQUES、Eppstein et al.）と比較。
+Chiba–Nishizeki (1985) Section 6 の procedure `UPDATE` として書いた、
+Tsukiyama et al. (1977) の頂点逐次生成（クリーク版）を、
+Bron–Kerbosch（ピボット）、Tomita CLIQUES、Eppstein et al. と比較する。
+出典と未確認点は `NOTES.md`。
 
 実験設定:
 
 - インスタンス: H_k グラフ (k=1,3,5,7,8,9,10)、`data/instances/*.clq`
-- 各条件3回実行、中央値を採用
-- タイムアウト: 300秒/実行
-- 記録: 実行時間、クリーク数、最大クリークサイズ、work counter（再帰呼び出し回数、Tsukiyamaのみ）
+- 各条件 3 回、壁時計の中央値。CSV の `time_s` はその中央値の回のもの
+- タイムアウト: 300 秒/実行。打ち切った回は `timeout=True` とし、時間は空欄
+- 記録: クリーク数、最大クリークサイズ（4 手法とも同じ定義）、
+  Tsukiyama の生成木節点数（`work_counter` = `UPDATE` の呼び出し回数）
+
+2026-10-16 にこの VM で再実行したときは 7 本とも 300 秒以内に終わり、
+全体で約 21 秒だった。絶対秒はマシンに依存する。
 
 ### 実行方法
 
@@ -129,7 +135,7 @@ Tsukiyama et al. (1977) の極大独立集合列挙アルゴリズムを補グ�
 # DIMACS インスタンスが data/instances/ にあることを確認
 ls data/instances/H*.clq
 
-# 全インスタンスでベンチマーク（約30分、H8以降でTsukiyamaがタイムアウト）
+# 全インスタンスでベンチマーク（タイムアウト 300 秒、繰り返し 3）
 uv run python -m parallel_processing.benchmark_tsukiyama
 
 # 結果の可視化

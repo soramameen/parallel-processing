@@ -1,4 +1,4 @@
-"""Benchmark script comparing Tsukiyama et al.'s algorithm against existing implementations.
+"""Benchmark Tsukiyama et al. against the algorithms already in this repo.
 
 This script benchmarks the Tsukiyama algorithm (1977) against the repository's
 existing algorithms:
@@ -35,7 +35,7 @@ from typing import Any
 from parallel_processing.bron_kerbosch import bron_kerbosch_pivot
 from parallel_processing.cliques import count_cliques
 from parallel_processing.eppstein import count_eppstein_cliques, degeneracy_ordering
-from parallel_processing.graph_io import edge_count, load_dimacs, load_edge_list
+from parallel_processing.graph_io import edge_count, load_dimacs
 from parallel_processing.tsukiyama import count_tsukiyama_cliques
 
 # Instances to benchmark
@@ -49,10 +49,18 @@ INSTANCES = [
     ("H10_n290.clq", 2861),
 ]
 
+
 # Algorithms to benchmark
 # name, function, has_work_counter
+def _bk_count(graph):
+    cliques = bron_kerbosch_pivot(graph)
+    count = len(cliques)
+    largest = max((len(c) for c in cliques), default=0)
+    return count, largest, None
+
+
 ALGORITHMS = [
-    ("bron_kerbosch_pivot", lambda g: (len(bron_kerbosch_pivot(g)), 0, None), False),
+    ("bron_kerbosch_pivot", _bk_count, False),
     ("tomita_cliques", lambda g: (*count_cliques(g), None), False),
     ("eppstein_cliques", lambda g: (*count_eppstein_cliques(g), None), False),
     ("tsukiyama_cliques", count_tsukiyama_cliques, True),
@@ -63,10 +71,8 @@ REPEAT = 3  # Number of runs per configuration
 TIMEOUT_SECONDS = 300  # 5 minutes per run
 
 
-class TimeoutException(Exception):
+class BenchmarkTimeoutError(Exception):
     """Raised when a benchmark run exceeds the timeout."""
-
-    pass
 
 
 @contextmanager
@@ -74,7 +80,7 @@ def time_limit(seconds: int):
     """Context manager that raises TimeoutException after seconds."""
 
     def signal_handler(signum, frame):
-        raise TimeoutException("Timed out!")
+        raise BenchmarkTimeoutError("Timed out!")
 
     # Set up signal handler for timeout
     old_handler = signal.signal(signal.SIGALRM, signal_handler)
@@ -95,7 +101,7 @@ def benchmark_algorithm(
     """Benchmark one algorithm on one graph.
 
     Returns:
-        Dictionary with keys: time_s, clique_count, largest_clique, work_counter, timeout
+        time_s, clique_count, largest_clique, work_counter, and timeout.
     """
     try:
         with time_limit(timeout):
@@ -109,7 +115,7 @@ def benchmark_algorithm(
                 "work_counter": work,
                 "timeout": False,
             }
-    except TimeoutException:
+    except BenchmarkTimeoutError:
         return {
             "time_s": None,
             "clique_count": None,
@@ -163,9 +169,7 @@ def run_benchmarks() -> list[dict[str, Any]]:
             run_results = []
 
             for run_idx in range(REPEAT):
-                result = benchmark_algorithm(
-                    algo_name, algo_fn, graph, TIMEOUT_SECONDS
-                )
+                result = benchmark_algorithm(algo_name, algo_fn, graph, TIMEOUT_SECONDS)
                 run_results.append(result)
 
                 if result["timeout"]:
@@ -178,20 +182,20 @@ def run_benchmarks() -> list[dict[str, Any]]:
 
             print()  # newline after all runs
 
-            # Compute median time
+            # Compute median time. 0.0 is a successful measurement.
             median_time = sorted(run_times)[len(run_times) // 2] if run_times else None
 
-            # Use the result from the median run for clique count/work
+            # Use the result from the median run for clique count/work.
             best_result = (
-                run_results[run_times.index(median_time)] if median_time else run_results[0]
+                run_results[run_times.index(median_time)]
+                if median_time is not None
+                else run_results[0]
             )
 
             # Verify clique count
-            if best_result["clique_count"] is not None:
-                if best_result["clique_count"] != expected_cliques:
-                    print(
-                        f"    WARNING: Expected {expected_cliques}, got {best_result['clique_count']}"
-                    )
+            got = best_result["clique_count"]
+            if got is not None and got != expected_cliques:
+                print(f"    WARNING: expected {expected_cliques}, got {got}")
 
             # Record result
             results.append(
@@ -258,8 +262,12 @@ def print_summary(results: list[dict[str, Any]]) -> None:
         instances[inst][r["algorithm"]] = r
 
     # Print header
-    print(f"{'Instance':<15} {'Algorithm':<20} {'Time (s)':>12} {'Cliques':>10} {'Work':>12}")
-    print("-" * 80)
+    header = (
+        f"{'Instance':<15} {'Algorithm':<20} {'Time (s)':>12} "
+        f"{'Cliques':>10} {'Largest':>8} {'Nodes':>12}"
+    )
+    print(header)
+    print("-" * len(header))
 
     for inst_name in [f for f, _ in INSTANCES]:
         if inst_name not in instances:
@@ -273,16 +281,26 @@ def print_summary(results: list[dict[str, Any]]) -> None:
             r = inst_results[algo_name]
             inst_display = inst_name if i == 0 else ""
 
-            time_str = "TIMEOUT" if r["timeout"] else (
-                f"{r['time_s']:.3f}" if r["time_s"] is not None else "ERROR"
+            time_str = (
+                "TIMEOUT"
+                if r["timeout"]
+                else (f"{r['time_s']:.3f}" if r["time_s"] is not None else "ERROR")
             )
             clique_str = (
                 str(r["clique_count"]) if r["clique_count"] is not None else "-"
             )
-            work_str = str(r["work_counter"]) if r["work_counter"] is not None else "-"
+            largest_str = (
+                str(r["largest_clique"]) if r["largest_clique"] is not None else "-"
+            )
+            if r["work_counter"] is None or not r["clique_count"]:
+                work_str = "-"
+            else:
+                ratio = r["work_counter"] / (r["vertices"] * r["clique_count"])
+                work_str = f"{r['work_counter']} ({ratio:.3f} nμ)"
 
             print(
-                f"{inst_display:<15} {algo_name:<20} {time_str:>12} {clique_str:>10} {work_str:>12}"
+                f"{inst_display:<15} {algo_name:<20} {time_str:>12} "
+                f"{clique_str:>10} {largest_str:>8} {work_str:>12}"
             )
 
         if inst_name != INSTANCES[-1][0]:
@@ -308,7 +326,7 @@ def main() -> None:
     """Run all benchmarks and save results."""
     print("Tsukiyama et al. Algorithm Benchmark")
     print("=" * 80)
-    print(f"Configuration:")
+    print("Configuration:")
     print(f"  Repetitions: {REPEAT}")
     print(f"  Timeout: {TIMEOUT_SECONDS}s per run")
     print()
